@@ -24,7 +24,7 @@ Code should be written to gracefully handle future requirements, not just today'
 
 ```bash
 /plugin marketplace add harshmaur/harshmaur-marketplace
-/plugin install harshmaur-marketplace@harshmaur-typescript-review
+/plugin install harshmaur-typescript-review@harshmaur-marketplace
 ```
 
 ## Usage
