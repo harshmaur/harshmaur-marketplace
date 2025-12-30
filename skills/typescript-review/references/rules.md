@@ -643,9 +643,239 @@ const str2 = numberValue.toString();
 
 ---
 
+## React Components
+
+### REACT-1: Use Composition Over Props for Behavior Changes
+
+When adding new behavior to a component (not visual changes), use composition instead of adding new props. Create a wrapper component or compose inline based on usage frequency.
+
+**Why:** Adding behavior props (like `link`, `onClick`, `disabled`) bloats components over time. Each prop adds complexity and conditional logic. Composition keeps components simple and focused.
+
+**Decision guide:**
+- Used in **many places** → Create a composed component (`ButtonWithExternalLink`)
+- Used **once** → Just wrap inline, don't modify the original component
+
+```tsx
+// ❌ Bad: Adding behavior prop to component
+const Button = ({ link, children, ...props }) => {
+  if (!link) return <button {...props}>{children}</button>
+
+  return (
+    <a href={link} target="_blank" rel="noopener noreferrer">
+      <button {...props}>{children}</button>
+    </a>
+  )
+}
+
+// ✅ Good: Composition - create new component (if used in many places)
+const Button = ({ children, ...props }) => {
+  return <button {...props}>{children}</button>
+}
+
+const ButtonWithExternalLink = ({ link, children, ...props }) => {
+  return (
+    <a href={link} target="_blank" rel="noopener noreferrer">
+      <Button {...props}>{children}</Button>
+    </a>
+  )
+}
+
+// ✅ Good: Inline composition (if used once)
+const SomeComponent = () => {
+  const link = "https://google.com"
+  return (
+    <a href={link} target="_blank" rel="noopener noreferrer">
+      <Button>Go to google.com</Button>
+    </a>
+  )
+}
+```
+
+---
+
+### REACT-2: Use Enum Props Over Boolean Props for Visual Variants
+
+When adding visual variants to a component, use enum-style props (`size: 'small' | 'medium'`) instead of boolean props (`smallSize: boolean`). Always provide default values for backwards compatibility.
+
+**Why:** Boolean props assume only 2 states and require refactoring when a third variant is needed. Enum props are extensible - adding `'large'` requires no changes to existing usage.
+
+**Decision guide:**
+- Used in **many places** → Add an enum prop with default value
+- Used **once** → Don't modify component, override className inline
+
+```tsx
+// ❌ Bad: Boolean prop for visual variant
+type ButtonProps = { smallSize?: boolean; children: ReactNode }
+
+const Button = ({ smallSize, children, ...props }: ButtonProps) => {
+  const classNames = {
+    medium: 'text-blue-500 hover:text-blue-600',
+    small: 'text-blue-500 hover:text-blue-600 text-xs',
+  }
+
+  // What happens when we need 'large'? This breaks.
+  return (
+    <button className={smallSize ? classNames.small : classNames.medium} {...props}>
+      {children}
+    </button>
+  )
+}
+
+// ✅ Good: Enum prop with default value (if used in many places)
+type ButtonSize = 'small' | 'medium' // easily add 'large' later
+type ButtonProps = { size?: ButtonSize; children: ReactNode }
+
+const Button = ({ size = 'medium', children, ...props }: ButtonProps) => {
+  const classNames: Record<ButtonSize, string> = {
+    medium: 'text-blue-500 hover:text-blue-600',
+    small: 'text-blue-500 hover:text-blue-600 text-xs',
+    // Adding 'large' here requires no other code changes
+  }
+
+  return (
+    <button className={classNames[size]} {...props}>
+      {children}
+    </button>
+  )
+}
+
+// ✅ Good: Override className inline (if used once)
+const SomeComponent = () => {
+  return (
+    <Button className="text-blue-500 hover:text-blue-600 text-xs">
+      Submit
+    </Button>
+  )
+}
+```
+
+---
+
+### REACT-3: Be Intentional About Component Props
+
+Think hard before adding any prop to a component. Each prop should provide meaningful functionality that will be used across many places.
+
+**Why:** Components with too many one-off props become hard to use and maintain. But core/base components CAN have more props if each prop represents genuinely reusable functionality.
+
+**Before adding a prop, ask:**
+1. Is this functionality going to be used in many places? (Not a one-off)
+2. Is this a meaningful, reusable feature for this component?
+3. If it's one-off, can I compose or override className instead?
+
+**Key distinction:**
+- ✅ OK: Core `Button` with `size`, `variant`, `disabled`, `loading` - these are meaningful, reused everywhere
+- ❌ Bad: Adding `link` prop to `Button` for one specific use case
+
+```tsx
+// ❌ Bad: Props for one-off use cases
+type ButtonProps = {
+  size?: 'small' | 'medium' | 'large'
+  variant?: 'primary' | 'secondary'
+  // These are one-off behaviors, not core button functionality:
+  link?: string              // Only needed in 1 place? Use composition
+  target?: '_blank' | '_self' // Only needed with link
+  iconPosition?: 'left' | 'right' // Only 1 icon button in the app?
+  fullWidth?: boolean        // Only 1 full-width button? Use className
+  children: ReactNode
+}
+
+// ✅ Good: Core component with meaningful, reusable props
+type ButtonProps = {
+  size?: 'small' | 'medium' | 'large'  // Used everywhere
+  variant?: 'primary' | 'secondary' | 'ghost'  // Used everywhere
+  disabled?: boolean  // Standard button functionality
+  loading?: boolean   // Used in many forms/actions
+  children: ReactNode
+}
+
+const Button = ({ size = 'medium', variant = 'primary', disabled, loading, children, ...props }: ButtonProps) => {
+  // Core component with genuinely reusable props
+}
+
+// One-off behaviors use composition instead
+const LinkButton = ({ href, children, ...props }) => (
+  <a href={href} target="_blank" rel="noopener noreferrer">
+    <Button {...props}>{children}</Button>
+  </a>
+)
+
+// One-off styling uses className override
+const SomeComponent = () => (
+  <Button className="w-full">Full Width Here Only</Button>
+)
+```
+
+---
+
+### REACT-4: Default Props for Backwards Compatibility
+
+When adding new props to existing components, always provide default values so existing usages don't break.
+
+**Why:** Components may be used in dozens of places. Adding a required prop or changing behavior without defaults breaks all existing usages.
+
+```tsx
+// ❌ Bad: Adding required prop breaks existing usages
+// Before
+const Button = ({ children }) => <button>{children}</button>
+
+// After - BREAKS all existing <Button> usages
+const Button = ({ children, size }: { children: ReactNode; size: 'small' | 'medium' }) => {
+  // size is now required!
+}
+
+// ✅ Good: Default value maintains backwards compatibility
+// Before
+const Button = ({ children }) => <button>{children}</button>
+
+// After - existing usages still work
+const Button = ({ children, size = 'medium' }: { children: ReactNode; size?: 'small' | 'medium' }) => {
+  // size defaults to 'medium', no breaking changes
+}
+```
+
+---
+
+### REACT-5: Check Usage Frequency Before Modifying Components
+
+Before modifying any shared component, determine if the change will be used once or many times. Don't assume future usage - decide based on current, concrete needs.
+
+**Why:** Premature abstraction adds complexity. One-time changes don't justify modifying shared components.
+
+**Decision matrix:**
+
+| Usage | Behavior Change | Visual Change |
+|-------|-----------------|---------------|
+| **Once** | Wrap inline, don't touch component | Override className inline |
+| **Many times** | Create composed component | Add enum prop with default |
+
+```tsx
+// Scenario: Need a button that opens external link in ONE place
+
+// ❌ Bad: Modifying shared Button component for one-time use
+const Button = ({ link, children, ...props }) => {
+  if (link) {
+    return <a href={link}><button {...props}>{children}</button></a>
+  }
+  return <button {...props}>{children}</button>
+}
+
+// ✅ Good: Just use it inline for one-time use
+const Header = () => {
+  return (
+    <a href="https://docs.example.com" target="_blank" rel="noopener noreferrer">
+      <Button>Documentation</Button>
+    </a>
+  )
+}
+
+// Later, if you need it in 3+ places, THEN create ButtonWithExternalLink
+```
+
+---
+
 ## Adding New Rules
 
 To add a new rule:
 1. Choose or create an appropriate category
-2. Assign a rule ID (e.g., `EXT-5`, `TYPE-2`, `NAME-12`)
+2. Assign a rule ID (e.g., `EXT-5`, `TYPE-2`, `NAME-12`, `REACT-6`)
 3. Include: rule name, rationale ("Why"), bad example, good example
