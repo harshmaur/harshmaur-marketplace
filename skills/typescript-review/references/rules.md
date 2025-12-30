@@ -188,9 +188,464 @@ function processData<T extends { id: string }>(data: T): T {
 
 ---
 
+## Naming & Structure
+
+### NAME-1: No Spelling Mistakes in Names or Comments
+
+Variable names, function names, and comments must be spelled correctly.
+
+**Why:** Spelling mistakes cause confusion, make code harder to search, and look unprofessional. Typos in variable names can also cause bugs when someone searches for the correct spelling.
+
+```typescript
+// ❌ Bad: Spelling mistakes
+const recieve = fetchData(); // "recieve" should be "receive"
+const occured = true; // "occured" should be "occurred"
+const seperate = items.split(','); // "seperate" should be "separate"
+// This functon handles the responce
+function procesData() {} // "functon", "responce", "proces"
+
+// ✅ Good: Correct spelling
+const receive = fetchData();
+const occurred = true;
+const separate = items.split(',');
+// This function handles the response
+function processData() {}
+```
+
+---
+
+### NAME-2: Keep Abbreviations Capitalized in camelCase (When Not First)
+
+When using abbreviations in camelCase identifiers, keep the abbreviation fully capitalized ONLY when it's not the first word. If the abbreviation starts the identifier, use standard camelCase (lowercase first letter) to distinguish variables from classes.
+
+**Exception:** `id` can remain lowercase (`userId`) as it reads more naturally.
+
+**Why:** Abbreviations in the middle or end should stay capitalized to be recognizable. But starting with all caps (`XMLParser`) looks like a class name, not a variable. Keeping `xmlParser` makes it clearly a variable.
+
+```typescript
+// ❌ Bad: Abbreviations lowercased when NOT first
+const isIoc = true; // should be isIOC
+const getUserApi = () => {}; // should be getUserAPI
+const parseHtml = (str: string) => {}; // should be parseHTML
+const fetchJsonData = async () => {}; // should be fetchJSONData
+
+// ❌ Bad: Abbreviations capitalized when FIRST (looks like a class)
+const XMLParser = new Parser(); // should be xmlParser
+const HTTPRequest = new Request(); // should be httpRequest
+const SQLQuery = 'SELECT *'; // should be sqlQuery
+const JSONData = {}; // should be jsonData
+
+// ✅ Good: Abbreviations capitalized only when NOT first
+const isIOC = true;
+const getUserAPI = () => {};
+const parseHTML = (str: string) => {};
+const fetchJSONData = async () => {};
+const xmlParser = new Parser(); // lowercase because XML is first
+const httpRequest = new Request(); // lowercase because HTTP is first
+const sqlQuery = 'SELECT *'; // lowercase because SQL is first
+const jsonData = {}; // lowercase because JSON is first
+
+// ✅ Good: "id" exception - lowercase looks better
+const userId = '123'; // not userID
+const visitorId = 'abc'; // not visitorID
+const getOrderById = (id: string) => {}; // not getOrderByID
+
+// Common abbreviations to watch for:
+// API, IOC, URL, URI, HTML, CSS, JSON, XML, HTTP, HTTPS, SQL, UUID, AWS, GCP, SDK, CLI, GUI, DOM, REST, CRUD
+```
+
+---
+
+### NAME-3: No Meaningless Names
+
+Never use placeholder names like `foo`, `bar`, `baz`, `temp`, `tmp`, or similar meaningless identifiers.
+
+**Why:** Meaningless names provide zero context about what the variable represents. They make code impossible to understand without reading surrounding context.
+
+```typescript
+// ❌ Bad: Meaningless names
+const foo = getUsers();
+const bar = foo.filter(x => x.active);
+const temp = calculateTotal(bar);
+const tmp = formatCurrency(temp);
+
+// ✅ Good: Descriptive names
+const users = getUsers();
+const activeUsers = users.filter(user => user.active);
+const totalRevenue = calculateTotal(activeUsers);
+const formattedRevenue = formatCurrency(totalRevenue);
+```
+
+---
+
+### NAME-4: No Abstract Names Like "data" or "object"
+
+Avoid vague names like `data`, `object`, `thing`, `item`, `info`, `stuff`, `value`, `result` when a more specific name exists.
+
+**Why:** These names are too abstract to convey meaning. Everything in code is data or an object - the name should tell you WHAT kind.
+
+```typescript
+// ❌ Bad: Abstract names
+const data = fetchCustomers();
+const object = { name: 'John', age: 30 };
+const info = getUserDetails();
+const result = calculateMetrics();
+const value = input.trim();
+const item = cart.items[0];
+
+// ✅ Good: Specific names
+const customers = fetchCustomers();
+const userProfile = { name: 'John', age: 30 };
+const userDetails = getUserDetails();
+const salesMetrics = calculateMetrics();
+const trimmedInput = input.trim();
+const firstCartItem = cart.items[0];
+```
+
+---
+
+### NAME-5: No Numeric Suffixes
+
+Never use numeric suffixes like `user2`, `data_2`, `employee2` to differentiate variables.
+
+**Why:** Numbers don't explain the difference between variables. The reader knows there are two but not WHY or HOW they differ.
+
+```typescript
+// ❌ Bad: Numeric suffixes
+const user1 = getManager();
+const user2 = getEmployee();
+const date1 = order.createdAt;
+const date2 = order.updatedAt;
+const config1 = loadDevConfig();
+const config2 = loadProdConfig();
+
+// ✅ Good: Descriptive differentiation
+const manager = getManager();
+const employee = getEmployee();
+const createdDate = order.createdAt;
+const updatedDate = order.updatedAt;
+const devConfig = loadDevConfig();
+const prodConfig = loadProdConfig();
+```
+
+---
+
+### NAME-6: No Ambiguous Abbreviations
+
+Avoid abbreviations that could mean multiple things: `acc`, `pos`, `char`, `mod`, `auth`, `proc`, `temp`, `val`, `res`, `req`, `btn`, `msg`, `str`, `num`, `arr`, `obj`, `fn`, `cb`.
+
+**Why:** `auth` could be authentication or authorization. `pos` could be position or point-of-sale. `char` could be character or characteristic. Write out the full word.
+
+```typescript
+// ❌ Bad: Ambiguous abbreviations
+const auth = checkAuth(); // authentication? authorization?
+const pos = getPos(); // position? point of sale?
+const char = str.charAt(0); // character? characteristic?
+const mod = getMod(); // module? modifier? modulus?
+const val = input.val; // value? validation?
+const res = await fetch(); // response? result? resource?
+const btn = document.querySelector('button');
+const cb = (err, data) => {}; // callback
+const fn = () => {}; // function
+const arr = [1, 2, 3];
+const obj = { key: 'value' };
+
+// ✅ Good: Full words
+const isAuthenticated = checkAuthentication();
+const cursorPosition = getCursorPosition();
+const firstCharacter = str.charAt(0);
+const moduleName = getModuleName();
+const inputValue = input.val;
+const response = await fetch();
+const submitButton = document.querySelector('button');
+const onComplete = (error, data) => {};
+const handleClick = () => {};
+const numbers = [1, 2, 3];
+const config = { key: 'value' };
+```
+
+---
+
+### NAME-7: No Single-Letter Variable Names
+
+Avoid single-letter names like `a`, `b`, `x`, `y`, `i`, `j`, `k`, `n`, `e`, `t`, `s` even in loops or short functions.
+
+**Why:** Single letters are the most ambiguous possible names. They force readers to trace back through code to understand what they represent.
+
+```typescript
+// ❌ Bad: Single-letter names
+for (let i = 0; i < users.length; i++) {
+  const u = users[i];
+  if (u.a > 18) {
+    console.log(u.n);
+  }
+}
+
+const r = items.reduce((a, b) => a + b.price, 0);
+
+array.map(x => x * 2);
+
+try {
+  doSomething();
+} catch (e) {
+  console.error(e);
+}
+
+// ✅ Good: Descriptive names
+for (let userIndex = 0; userIndex < users.length; userIndex++) {
+  const user = users[userIndex];
+  if (user.age > 18) {
+    console.log(user.name);
+  }
+}
+
+// Even better: use forEach or for-of
+for (const user of users) {
+  if (user.age > 18) {
+    console.log(user.name);
+  }
+}
+
+const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
+
+numbers.map(number => number * 2);
+
+try {
+  doSomething();
+} catch (error) {
+  console.error(error);
+}
+```
+
+---
+
+### NAME-8: Avoid Vague Words Like "Manager" and Overused "get"
+
+Avoid vague nouns like `Manager`, `Handler`, `Processor`, `Helper`, `Util`, `Service` (without context). Also avoid overusing `get` prefix when more specific verbs exist.
+
+**Why:** "Manager" is vague - what does it manage? Use specific verbs: `calculate`, `fetch`, `build`, `create`, `parse`, `validate`, `format`, `find`, `filter`, `load`, `save`.
+
+```typescript
+// ❌ Bad: Vague words
+class DataManager {}
+class UserHandler {}
+class OrderProcessor {}
+function getScore() {} // calculated? fetched? estimated?
+function getData() {} // from where? what kind?
+function getUsers() {} // from API? database? cache?
+
+// ✅ Good: Specific words
+class UserRepository {} // stores/retrieves users
+class OrderValidator {} // validates orders
+class InvoiceGenerator {} // generates invoices
+function calculateScore() {}
+function estimateScore() {}
+function fetchUsersFromAPI() {}
+function loadUsersFromCache() {}
+function queryUsersFromDatabase() {}
+```
+
+---
+
+### NAME-9: No Vestigial Hungarian Notation
+
+Remove type prefixes like `is`, `has`, `str`, `num`, `arr`, `obj`, `date` when the type system already provides this information.
+
+**Why:** In typed languages, the type is already known. `isActive: boolean` is redundant - just use `active: boolean`. Exception: `is`/`has` prefixes ARE appropriate for boolean function names that read as questions.
+
+```typescript
+// ❌ Bad: Redundant type prefixes on variables
+const isVictory: boolean = true; // just "victory"
+const dateCreated: Date = new Date(); // just "created" or "createdAt"
+const strName: string = 'John'; // just "name"
+const numCount: number = 5; // just "count"
+const arrItems: string[] = []; // just "items"
+
+// ✅ Good: Let the type system do its job
+const victory: boolean = true;
+const createdAt: Date = new Date();
+const name: string = 'John';
+const count: number = 5;
+const items: string[] = [];
+
+// ✅ OK: is/has prefix for boolean functions (reads as a question)
+function isActive(user: User): boolean {}
+function hasPermission(user: User, action: string): boolean {}
+function canEdit(document: Document): boolean {}
+```
+
+---
+
+### NAME-10: Use Domain Words Instead of Concatenation
+
+When a single domain word exists, use it instead of concatenating multiple words.
+
+**Why:** English has rich vocabulary. `appointmentList` should be `calendar`, `companyPerson` should be `employee`, `textCorrectionByEditor` should be `edit`.
+
+```typescript
+// ❌ Bad: Word concatenation when a domain word exists
+const appointmentList = getAppointments(); // use "calendar" or "schedule"
+const companyPerson = getWorker(); // use "employee"
+const carList = getCars(); // use "fleet" or just "cars"
+const bookCollection = getBooks(); // use "library" or just "books"
+const moneyAmount = getTotal(); // use "total", "balance", "sum"
+const timeSpan = getDuration(); // use "duration"
+const wordList = getWords(); // use "vocabulary", "glossary", or just "words"
+
+// ✅ Good: Domain-appropriate words
+const calendar = getAppointments();
+const employee = getWorker();
+const fleet = getCars();
+const library = getBooks();
+const balance = getTotal();
+const duration = getDuration();
+const glossary = getWords();
+```
+
+---
+
+### NAME-11: Consistent Domain Language
+
+Use the same terminology throughout the codebase. If you use `getCustomers`, don't introduce `fetchClients` for the same concept.
+
+**Why:** Inconsistent terminology creates confusion about whether `customers` and `clients` are the same or different things.
+
+```typescript
+// ❌ Bad: Inconsistent terminology for the same concept
+function getCustomers() {}
+function fetchClients() {} // Are clients different from customers?
+function retrieveUsers() {} // Are users different?
+function loadPatrons() {} // What's a patron?
+
+function createOrder() {}
+function makePurchase() {} // Is this different from an order?
+function newTransaction() {} // Another term?
+
+// ✅ Good: Consistent terminology
+function getCustomers() {}
+function getCustomerByID(id: string) {}
+function searchCustomers(query: string) {}
+function createCustomer(data: CustomerData) {}
+
+function createOrder() {}
+function getOrderByID(id: string) {}
+function cancelOrder(id: string) {}
+```
+
+---
+
+## Comments
+
+### COMMENT-1: Comment the "Why", Not the "What"
+
+Don't write comments that explain what code does - that's visible from reading the code. Only comment to explain WHY something is done a certain way, especially for anti-patterns or non-obvious decisions.
+
+**Why:** Comments explaining "what" become outdated and redundant. Comments explaining "why" preserve crucial context that isn't visible in the code itself.
+
+```typescript
+// ❌ Bad: Comments explaining what the code does
+// Loop through users
+for (const user of users) {
+  // Check if user is active
+  if (user.active) {
+    // Add user to active users array
+    activeUsers.push(user);
+  }
+}
+
+// Increment counter
+counter++;
+
+// Return the result
+return result;
+
+// ✅ Good: Comments explaining why
+// Filter out inactive users before billing to avoid charging
+// accounts that have been suspended - required by legal team
+for (const user of users) {
+  if (user.active) {
+    activeUsers.push(user);
+  }
+}
+
+// Counter must be incremented BEFORE the API call because
+// the payment provider uses it as an idempotency key
+counter++;
+
+return result;
+```
+
+---
+
+### COMMENT-2: Always Comment Anti-Patterns and Workarounds
+
+When you intentionally use an anti-pattern, workaround, or unexpected approach, ALWAYS add a comment explaining why this was necessary.
+
+**Why:** Without explanation, the next developer (or you in 6 months) will assume it's a mistake and "fix" it, potentially reintroducing the bug you worked around.
+
+```typescript
+// ❌ Bad: Anti-pattern without explanation
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const data = response as any;
+
+setTimeout(() => {
+  inputRef.current?.focus();
+}, 0);
+
+const users = JSON.parse(JSON.stringify(originalUsers));
+
+// ✅ Good: Anti-pattern with explanation
+// Using 'any' here because the third-party API returns inconsistent
+// types depending on the endpoint version. Tracked in JIRA-1234.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const data = response as any;
+
+// setTimeout(0) is needed because React's state update hasn't
+// flushed to the DOM yet. The input doesn't exist until next tick.
+// TODO: Refactor to useEffect when we upgrade to React 18
+setTimeout(() => {
+  inputRef.current?.focus();
+}, 0);
+
+// Deep clone required because Redux state is frozen in dev mode,
+// and we need to mutate this for the legacy export function.
+// See: https://github.com/our-repo/issues/456
+const users = JSON.parse(JSON.stringify(originalUsers));
+```
+
+---
+
+## Code Style
+
+### STYLE-1: No Implicit Type Coercion
+
+Use explicit type conversion functions instead of implicit coercion tricks.
+
+**Why:** Implicit coercion is clever but hard to read. `!!foo` to convert to boolean, `+foo` to convert to number, and `'' + foo` to convert to string are not immediately obvious to all developers.
+
+```typescript
+// ❌ Bad: Implicit coercion tricks
+const bool = !!value;
+const bool2 = ~str.indexOf('.');
+const num = +stringValue;
+const num2 = 1 * stringValue;
+const str = '' + numberValue;
+const str2 = value + '';
+
+// ✅ Good: Explicit conversion
+const bool = Boolean(value);
+const bool2 = str.indexOf('.') !== -1;
+const num = Number(stringValue);
+const num2 = parseInt(stringValue, 10); // or parseFloat()
+const str = String(numberValue);
+const str2 = numberValue.toString();
+```
+
+---
+
 ## Adding New Rules
 
 To add a new rule:
 1. Choose or create an appropriate category
-2. Assign a rule ID (e.g., `EXT-5`, `TYPE-2`)
+2. Assign a rule ID (e.g., `EXT-5`, `TYPE-2`, `NAME-12`)
 3. Include: rule name, rationale ("Why"), bad example, good example
