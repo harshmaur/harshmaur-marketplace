@@ -10,25 +10,22 @@ Code should be written to gracefully handle future requirements, not just today'
 
 ## Rules Included
 
-| ID | Rule | Summary |
-|----|------|---------|
-| EXT-1 | Enum-Style Modes | Use `mode: 'IOC' \| 'RULES'` instead of `isIOCMode: boolean` |
-| EXT-2 | Separate Functions | Split variant logic into separate functions + shared helper |
-| EXT-3 | Separate UI Pages | Split variant UIs into separate pages + shared components |
-| EXT-4 | Avoid Non-Boolean Ternaries | Use helper functions instead of ternaries for mode-based logic |
-| TYPE-1 | No `any` | Use proper types, `unknown`, or generics |
+| ID     | Rule                        | Summary                                                        |
+| ------ | --------------------------- | -------------------------------------------------------------- |
+| EXT-1  | Enum-Style Modes            | Use `mode: 'IOC' \| 'RULES'` instead of `isIOCMode: boolean`   |
+| EXT-2  | Separate Functions          | Split variant logic into separate functions + shared helper    |
+| EXT-3  | Separate UI Pages           | Split variant UIs into separate pages + shared components      |
+| EXT-4  | Avoid Non-Boolean Ternaries | Use helper functions instead of ternaries for mode-based logic |
+| TYPE-1 | No `any`                    | Use proper types, `unknown`, or generics                       |
 
 ## Installation
 
 ### Claude Code
-```bash
-claude plugin add github:harsh-maur/harsh-maur-typescript-review
-```
 
-### Claude.ai
-1. Download the `.skill` file from [Releases](../../releases)
-2. Go to **Settings → Skills**
-3. Click **Upload skill**
+```bash
+/plugin marketplace add harshmaur/harshmaur-marketplace
+/plugin install harshmaur-marketplace@harshmaur-typescript-review
+```
 
 ## Usage
 

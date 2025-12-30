@@ -1,5 +1,5 @@
 ---
-name: harsh-maur-typescript-review
+name: harshmaur-typescript-review
 description: Review TypeScript code against Harsh Maur's personal coding standards focused on extensibility and future-proofing. Use when reviewing TypeScript/JavaScript code, providing code feedback, or when asked to check code quality. Enforces Harsh's opinions on avoiding boolean flags, preferring enum-style modes, separating variant-specific logic, avoiding ternaries for non-boolean conditions, and strict typing.
 ---
 
