@@ -19,17 +19,17 @@ if (isIOCMode) {
 }
 
 // ✅ Good: Enum-style mode is extensible
-type ProcessingMode = 'IOC' | 'RULES';
-const mode: ProcessingMode = 'IOC';
+type ProcessingMode = "IOC" | "RULES";
+const mode: ProcessingMode = "IOC";
 
-if (mode === 'IOC') {
+if (mode === "IOC") {
   // IOC logic
-} else if (mode === 'RULES') {
+} else if (mode === "RULES") {
   // Rules logic (explicit)
 }
 
 // Adding a third mode is trivial:
-type ProcessingMode = 'IOC' | 'RULES' | 'HYBRID';
+type ProcessingMode = "IOC" | "RULES" | "HYBRID";
 ```
 
 ---
@@ -43,10 +43,10 @@ When logic differs significantly by mode/type, create separate functions per var
 ```typescript
 // ❌ Bad: Single function with conditional branching
 function processData(mode: ProcessingMode, data: Data) {
-  if (mode === 'IOC') {
+  if (mode === "IOC") {
     // 50 lines of IOC-specific logic
     // common logic mixed in
-  } else if (mode === 'RULES') {
+  } else if (mode === "RULES") {
     // 50 lines of Rules-specific logic
     // common logic duplicated
   }
@@ -81,17 +81,21 @@ When UI pages differ significantly by mode/type, create separate page components
 function DataPage({ mode }: { mode: ProcessingMode }) {
   return (
     <div>
-      {mode === 'IOC' ? <IOCHeader /> : <RulesHeader />}
-      {mode === 'IOC' ? <IOCForm /> : <RulesForm />}
-      {mode === 'IOC' ? <IOCTable /> : <RulesTable />}
+      {mode === "IOC" ? <IOCHeader /> : <RulesHeader />}
+      {mode === "IOC" ? <IOCForm /> : <RulesForm />}
+      {mode === "IOC" ? <IOCTable /> : <RulesTable />}
     </div>
   );
 }
 
 // ✅ Good: Separate pages + shared components
 // SharedComponents.tsx
-export function DataTable({ data }: Props) { /* common table */ }
-export function PageLayout({ children }: Props) { /* common layout */ }
+export function DataTable({ data }: Props) {
+  /* common table */
+}
+export function PageLayout({ children }: Props) {
+  /* common layout */
+}
 
 // IOCPage.tsx
 function IOCPage() {
@@ -126,26 +130,26 @@ Use ternaries only for true boolean conditions. For mode/type-based logic, use f
 
 ```typescript
 // ❌ Bad: Ternary assumes only 2 modes forever
-const label = mode === 'IOC' ? 'IOC Label' : 'Rules Label';
+const label = mode === "IOC" ? "IOC Label" : "Rules Label";
 // What happens when mode === 'HYBRID'? Silent bug: shows "Rules Label"
 
 // ❌ Bad: Ternary in JSX
-<span>{mode === 'IOC' ? 'Processing IOC...' : 'Processing Rules...'}</span>
+<span>{mode === "IOC" ? "Processing IOC..." : "Processing Rules..."}</span>;
 
 // ✅ Good: Helper function handles all cases explicitly
 function getModeLabel(mode: ProcessingMode): string {
-  if (mode === 'IOC') return 'IOC Label';
-  if (mode === 'RULES') return 'Rules Label';
-  if (mode === 'HYBRID') return 'Hybrid Label';
+  if (mode === "IOC") return "IOC Label";
+  if (mode === "RULES") return "Rules Label";
+  if (mode === "HYBRID") return "Hybrid Label";
   // TypeScript will error if a case is missing (with exhaustive checks)
   throw new Error(`Unknown mode: ${mode}`);
 }
 
 const label = getModeLabel(mode);
-<span>{getModeLabel(mode)}</span>
+<span>{getModeLabel(mode)}</span>;
 
 // ✅ OK: Ternary for actual booleans
-const statusText = isLoading ? 'Loading...' : 'Ready';
+const statusText = isLoading ? "Loading..." : "Ready";
 const icon = hasError ? <ErrorIcon /> : <SuccessIcon />;
 ```
 
@@ -175,7 +179,7 @@ function processData(data: DataShape) {
 
 // ✅ Good: Use unknown + type guards for truly unknown data
 function processUnknown(data: unknown) {
-  if (typeof data === 'object' && data !== null && 'foo' in data) {
+  if (typeof data === "object" && data !== null && "foo" in data) {
     // narrow the type safely
   }
 }
@@ -200,14 +204,14 @@ Variable names, function names, and comments must be spelled correctly.
 // ❌ Bad: Spelling mistakes
 const recieve = fetchData(); // "recieve" should be "receive"
 const occured = true; // "occured" should be "occurred"
-const seperate = items.split(','); // "seperate" should be "separate"
+const seperate = items.split(","); // "seperate" should be "separate"
 // This functon handles the responce
 function procesData() {} // "functon", "responce", "proces"
 
 // ✅ Good: Correct spelling
 const receive = fetchData();
 const occurred = true;
-const separate = items.split(',');
+const separate = items.split(",");
 // This function handles the response
 function processData() {}
 ```
@@ -232,7 +236,7 @@ const fetchJsonData = async () => {}; // should be fetchJSONData
 // ❌ Bad: Abbreviations capitalized when FIRST (looks like a class)
 const XMLParser = new Parser(); // should be xmlParser
 const HTTPRequest = new Request(); // should be httpRequest
-const SQLQuery = 'SELECT *'; // should be sqlQuery
+const SQLQuery = "SELECT *"; // should be sqlQuery
 const JSONData = {}; // should be jsonData
 
 // ✅ Good: Abbreviations capitalized only when NOT first
@@ -242,12 +246,12 @@ const parseHTML = (str: string) => {};
 const fetchJSONData = async () => {};
 const xmlParser = new Parser(); // lowercase because XML is first
 const httpRequest = new Request(); // lowercase because HTTP is first
-const sqlQuery = 'SELECT *'; // lowercase because SQL is first
+const sqlQuery = "SELECT *"; // lowercase because SQL is first
 const jsonData = {}; // lowercase because JSON is first
 
 // ✅ Good: "id" exception - lowercase looks better
-const userId = '123'; // not userID
-const visitorId = 'abc'; // not visitorID
+const userId = "123"; // not userID
+const visitorId = "abc"; // not visitorID
 const getOrderById = (id: string) => {}; // not getOrderByID
 
 // Common abbreviations to watch for:
@@ -265,13 +269,13 @@ Never use placeholder names like `foo`, `bar`, `baz`, `temp`, `tmp`, or similar 
 ```typescript
 // ❌ Bad: Meaningless names
 const foo = getUsers();
-const bar = foo.filter(x => x.active);
+const bar = foo.filter((x) => x.active);
 const temp = calculateTotal(bar);
 const tmp = formatCurrency(temp);
 
 // ✅ Good: Descriptive names
 const users = getUsers();
-const activeUsers = users.filter(user => user.active);
+const activeUsers = users.filter((user) => user.active);
 const totalRevenue = calculateTotal(activeUsers);
 const formattedRevenue = formatCurrency(totalRevenue);
 ```
@@ -287,7 +291,7 @@ Avoid vague names like `data`, `object`, `thing`, `item`, `info`, `stuff`, `valu
 ```typescript
 // ❌ Bad: Abstract names
 const data = fetchCustomers();
-const object = { name: 'John', age: 30 };
+const object = { name: "John", age: 30 };
 const info = getUserDetails();
 const result = calculateMetrics();
 const value = input.trim();
@@ -295,7 +299,7 @@ const item = cart.items[0];
 
 // ✅ Good: Specific names
 const customers = fetchCustomers();
-const userProfile = { name: 'John', age: 30 };
+const userProfile = { name: "John", age: 30 };
 const userDetails = getUserDetails();
 const salesMetrics = calculateMetrics();
 const trimmedInput = input.trim();
@@ -344,11 +348,11 @@ const char = str.charAt(0); // character? characteristic?
 const mod = getMod(); // module? modifier? modulus?
 const val = input.val; // value? validation?
 const res = await fetch(); // response? result? resource?
-const btn = document.querySelector('button');
+const btn = document.querySelector("button");
 const cb = (err, data) => {}; // callback
 const fn = () => {}; // function
 const arr = [1, 2, 3];
-const obj = { key: 'value' };
+const obj = { key: "value" };
 
 // ✅ Good: Full words
 const isAuthenticated = checkAuthentication();
@@ -357,11 +361,11 @@ const firstCharacter = str.charAt(0);
 const moduleName = getModuleName();
 const inputValue = input.val;
 const response = await fetch();
-const submitButton = document.querySelector('button');
+const submitButton = document.querySelector("button");
 const onComplete = (error, data) => {};
 const handleClick = () => {};
 const numbers = [1, 2, 3];
-const config = { key: 'value' };
+const config = { key: "value" };
 ```
 
 ---
@@ -383,7 +387,7 @@ for (let i = 0; i < users.length; i++) {
 
 const r = items.reduce((a, b) => a + b.price, 0);
 
-array.map(x => x * 2);
+array.map((x) => x * 2);
 
 try {
   doSomething();
@@ -408,7 +412,7 @@ for (const user of users) {
 
 const totalPrice = items.reduce((sum, item) => sum + item.price, 0);
 
-numbers.map(number => number * 2);
+numbers.map((number) => number * 2);
 
 try {
   doSomething();
@@ -457,14 +461,14 @@ Remove type prefixes like `is`, `has`, `str`, `num`, `arr`, `obj`, `date` when t
 // ❌ Bad: Redundant type prefixes on variables
 const isVictory: boolean = true; // just "victory"
 const dateCreated: Date = new Date(); // just "created" or "createdAt"
-const strName: string = 'John'; // just "name"
+const strName: string = "John"; // just "name"
 const numCount: number = 5; // just "count"
 const arrItems: string[] = []; // just "items"
 
 // ✅ Good: Let the type system do its job
 const victory: boolean = true;
 const createdAt: Date = new Date();
-const name: string = 'John';
+const name: string = "John";
 const count: number = 5;
 const items: string[] = [];
 
@@ -626,15 +630,15 @@ Use explicit type conversion functions instead of implicit coercion tricks.
 ```typescript
 // ❌ Bad: Implicit coercion tricks
 const bool = !!value;
-const bool2 = ~str.indexOf('.');
+const bool2 = ~str.indexOf(".");
 const num = +stringValue;
 const num2 = 1 * stringValue;
-const str = '' + numberValue;
-const str2 = value + '';
+const str = "" + numberValue;
+const str2 = value + "";
 
 // ✅ Good: Explicit conversion
 const bool = Boolean(value);
-const bool2 = str.indexOf('.') !== -1;
+const bool2 = str.indexOf(".") !== -1;
 const num = Number(stringValue);
 const num2 = parseInt(stringValue, 10); // or parseFloat()
 const str = String(numberValue);
@@ -652,43 +656,44 @@ When adding new behavior to a component (not visual changes), use composition in
 **Why:** Adding behavior props (like `link`, `onClick`, `disabled`) bloats components over time. Each prop adds complexity and conditional logic. Composition keeps components simple and focused.
 
 **Decision guide:**
+
 - Used in **many places** → Create a composed component (`ButtonWithExternalLink`)
 - Used **once** → Just wrap inline, don't modify the original component
 
 ```tsx
 // ❌ Bad: Adding behavior prop to component
 const Button = ({ link, children, ...props }) => {
-  if (!link) return <button {...props}>{children}</button>
+  if (!link) return <button {...props}>{children}</button>;
 
   return (
     <a href={link} target="_blank" rel="noopener noreferrer">
       <button {...props}>{children}</button>
     </a>
-  )
-}
+  );
+};
 
 // ✅ Good: Composition - create new component (if used in many places)
 const Button = ({ children, ...props }) => {
-  return <button {...props}>{children}</button>
-}
+  return <button {...props}>{children}</button>;
+};
 
 const ButtonWithExternalLink = ({ link, children, ...props }) => {
   return (
     <a href={link} target="_blank" rel="noopener noreferrer">
       <Button {...props}>{children}</Button>
     </a>
-  )
-}
+  );
+};
 
 // ✅ Good: Inline composition (if used once)
 const SomeComponent = () => {
-  const link = "https://google.com"
+  const link = "https://google.com";
   return (
     <a href={link} target="_blank" rel="noopener noreferrer">
       <Button>Go to google.com</Button>
     </a>
-  )
-}
+  );
+};
 ```
 
 ---
@@ -700,44 +705,48 @@ When adding visual variants to a component, use enum-style props (`size: 'small'
 **Why:** Boolean props assume only 2 states and require refactoring when a third variant is needed. Enum props are extensible - adding `'large'` requires no changes to existing usage.
 
 **Decision guide:**
+
 - Used in **many places** → Add an enum prop with default value
 - Used **once** → Don't modify component, override className inline
 
 ```tsx
 // ❌ Bad: Boolean prop for visual variant
-type ButtonProps = { smallSize?: boolean; children: ReactNode }
+type ButtonProps = { smallSize?: boolean; children: ReactNode };
 
 const Button = ({ smallSize, children, ...props }: ButtonProps) => {
   const classNames = {
-    medium: 'text-blue-500 hover:text-blue-600',
-    small: 'text-blue-500 hover:text-blue-600 text-xs',
-  }
+    medium: "text-blue-500 hover:text-blue-600",
+    small: "text-blue-500 hover:text-blue-600 text-xs",
+  };
 
   // What happens when we need 'large'? This breaks.
   return (
-    <button className={smallSize ? classNames.small : classNames.medium} {...props}>
+    <button
+      className={smallSize ? classNames.small : classNames.medium}
+      {...props}
+    >
       {children}
     </button>
-  )
-}
+  );
+};
 
 // ✅ Good: Enum prop with default value (if used in many places)
-type ButtonSize = 'small' | 'medium' // easily add 'large' later
-type ButtonProps = { size?: ButtonSize; children: ReactNode }
+type ButtonSize = "small" | "medium"; // easily add 'large' later
+type ButtonProps = { size?: ButtonSize; children: ReactNode };
 
-const Button = ({ size = 'medium', children, ...props }: ButtonProps) => {
+const Button = ({ size = "medium", children, ...props }: ButtonProps) => {
   const classNames: Record<ButtonSize, string> = {
-    medium: 'text-blue-500 hover:text-blue-600',
-    small: 'text-blue-500 hover:text-blue-600 text-xs',
+    medium: "text-blue-500 hover:text-blue-600",
+    small: "text-blue-500 hover:text-blue-600 text-xs",
     // Adding 'large' here requires no other code changes
-  }
+  };
 
   return (
     <button className={classNames[size]} {...props}>
       {children}
     </button>
-  )
-}
+  );
+};
 
 // ✅ Good: Override className inline (if used once)
 const SomeComponent = () => {
@@ -745,8 +754,8 @@ const SomeComponent = () => {
     <Button className="text-blue-500 hover:text-blue-600 text-xs">
       Submit
     </Button>
-  )
-}
+  );
+};
 ```
 
 ---
@@ -758,51 +767,60 @@ Think hard before adding any prop to a component. Each prop should provide meani
 **Why:** Components with too many one-off props become hard to use and maintain. But core/base components CAN have more props if each prop represents genuinely reusable functionality.
 
 **Before adding a prop, ask:**
+
 1. Is this functionality going to be used in many places? (Not a one-off)
 2. Is this a meaningful, reusable feature for this component?
 3. If it's one-off, can I compose or override className instead?
 
 **Key distinction:**
+
 - ✅ OK: Core `Button` with `size`, `variant`, `disabled`, `loading` - these are meaningful, reused everywhere
 - ❌ Bad: Adding `link` prop to `Button` for one specific use case
 
 ```tsx
 // ❌ Bad: Props for one-off use cases
 type ButtonProps = {
-  size?: 'small' | 'medium' | 'large'
-  variant?: 'primary' | 'secondary'
+  size?: "small" | "medium" | "large";
+  variant?: "primary" | "secondary";
   // These are one-off behaviors, not core button functionality:
-  link?: string              // Only needed in 1 place? Use composition
-  target?: '_blank' | '_self' // Only needed with link
-  iconPosition?: 'left' | 'right' // Only 1 icon button in the app?
-  fullWidth?: boolean        // Only 1 full-width button? Use className
-  children: ReactNode
-}
+  link?: string; // Only needed in 1 place? Use composition
+  target?: "_blank" | "_self"; // Only needed with link
+  iconPosition?: "left" | "right"; // Only 1 icon button in the app?
+  fullWidth?: boolean; // Only 1 full-width button? Use className
+  children: ReactNode;
+};
 
 // ✅ Good: Core component with meaningful, reusable props
 type ButtonProps = {
-  size?: 'small' | 'medium' | 'large'  // Used everywhere
-  variant?: 'primary' | 'secondary' | 'ghost'  // Used everywhere
-  disabled?: boolean  // Standard button functionality
-  loading?: boolean   // Used in many forms/actions
-  children: ReactNode
-}
+  size?: "small" | "medium" | "large"; // Used everywhere
+  variant?: "primary" | "secondary" | "ghost"; // Used everywhere
+  disabled?: boolean; // Standard button functionality
+  loading?: boolean; // Used in many forms/actions
+  children: ReactNode;
+};
 
-const Button = ({ size = 'medium', variant = 'primary', disabled, loading, children, ...props }: ButtonProps) => {
+const Button = ({
+  size = "medium",
+  variant = "primary",
+  disabled,
+  loading,
+  children,
+  ...props
+}: ButtonProps) => {
   // Core component with genuinely reusable props
-}
+};
 
 // One-off behaviors use composition instead
 const LinkButton = ({ href, children, ...props }) => (
   <a href={href} target="_blank" rel="noopener noreferrer">
     <Button {...props}>{children}</Button>
   </a>
-)
+);
 
 // One-off styling uses className override
 const SomeComponent = () => (
   <Button className="w-full">Full Width Here Only</Button>
-)
+);
 ```
 
 ---
@@ -816,21 +834,33 @@ When adding new props to existing components, always provide default values so e
 ```tsx
 // ❌ Bad: Adding required prop breaks existing usages
 // Before
-const Button = ({ children }) => <button>{children}</button>
+const Button = ({ children }) => <button>{children}</button>;
 
 // After - BREAKS all existing <Button> usages
-const Button = ({ children, size }: { children: ReactNode; size: 'small' | 'medium' }) => {
+const Button = ({
+  children,
+  size,
+}: {
+  children: ReactNode;
+  size: "small" | "medium";
+}) => {
   // size is now required!
-}
+};
 
 // ✅ Good: Default value maintains backwards compatibility
 // Before
-const Button = ({ children }) => <button>{children}</button>
+const Button = ({ children }) => <button>{children}</button>;
 
 // After - existing usages still work
-const Button = ({ children, size = 'medium' }: { children: ReactNode; size?: 'small' | 'medium' }) => {
+const Button = ({
+  children,
+  size = "medium",
+}: {
+  children: ReactNode;
+  size?: "small" | "medium";
+}) => {
   // size defaults to 'medium', no breaking changes
-}
+};
 ```
 
 ---
@@ -843,10 +873,10 @@ Before modifying any shared component, determine if the change will be used once
 
 **Decision matrix:**
 
-| Usage | Behavior Change | Visual Change |
-|-------|-----------------|---------------|
-| **Once** | Wrap inline, don't touch component | Override className inline |
-| **Many times** | Create composed component | Add enum prop with default |
+| Usage          | Behavior Change                    | Visual Change              |
+| -------------- | ---------------------------------- | -------------------------- |
+| **Once**       | Wrap inline, don't touch component | Override className inline  |
+| **Many times** | Create composed component          | Add enum prop with default |
 
 ```tsx
 // Scenario: Need a button that opens external link in ONE place
@@ -854,19 +884,27 @@ Before modifying any shared component, determine if the change will be used once
 // ❌ Bad: Modifying shared Button component for one-time use
 const Button = ({ link, children, ...props }) => {
   if (link) {
-    return <a href={link}><button {...props}>{children}</button></a>
+    return (
+      <a href={link}>
+        <button {...props}>{children}</button>
+      </a>
+    );
   }
-  return <button {...props}>{children}</button>
-}
+  return <button {...props}>{children}</button>;
+};
 
 // ✅ Good: Just use it inline for one-time use
 const Header = () => {
   return (
-    <a href="https://docs.example.com" target="_blank" rel="noopener noreferrer">
+    <a
+      href="https://docs.example.com"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
       <Button>Documentation</Button>
     </a>
-  )
-}
+  );
+};
 
 // Later, if you need it in 3+ places, THEN create ButtonWithExternalLink
 ```
@@ -876,6 +914,9 @@ const Header = () => {
 ## Adding New Rules
 
 To add a new rule:
+
 1. Choose or create an appropriate category
 2. Assign a rule ID (e.g., `EXT-5`, `TYPE-2`, `NAME-12`, `REACT-6`)
 3. Include: rule name, rationale ("Why"), bad example, good example
+4. Update `README.md` with the new rule in the appropriate table
+5. Increment minor version in `.claude-plugin/plugin.json` and in `.claude-plugin/marketplace.json` (if not already done in this session)
