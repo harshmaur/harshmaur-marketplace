@@ -1,0 +1,12 @@
+{
+  "name": "harsh-maur-typescript-review",
+  "version": "1.0.0",
+  "description": "Harsh Maur's personal coding standards and skills",
+  "author": {
+    "name": "Harsh Maur",
+    "email": "harshmaur@gmail.com"
+  },
+  "homepage": "https://github.com/harshmaur/harsh-maur-typescript-review",
+  "repository": "https://github.com/harshmaur/harsh-maur-typescript-review",
+  "license": "MIT"
+}

@@ -1,0 +1,23 @@
+{
+  "name": "harsh-maur-marketplace",
+  "owner": {
+    "name": "Harsh Maur",
+    "email": "harshmaur@gmail.com"
+  },
+  "metadata": {
+    "description": "Harsh Maur's personal coding standards and skills",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "harsh-maur-typescript-review",
+      "source": "./",
+      "description": "TypeScript code review against Harsh Maur's personal coding standards",
+      "version": "1.0.0",
+      "author": {
+        "name": "Harsh Maur",
+        "email": "harshmaur@gmail.com"
+      }
+    }
+  ]
+}

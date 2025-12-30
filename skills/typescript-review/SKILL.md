@@ -9,7 +9,7 @@ Review TypeScript code against Harsh Maur's coding rules in `references/rules.md
 
 ## Review Process
 
-1. Read `references/rules.md` to load all coding rules
+1. Read `references/rules.md` (in this skill's folder) to load all coding rules
 2. Analyze the provided code against each applicable rule
 3. Report violations with:
    - The rule violated
