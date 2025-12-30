@@ -34,4 +34,7 @@ Structure feedback as:
 
 ## What's Good
 [Positive observations about code that follows the rules]
+
+## Next Steps
+If issues were found, suggest: "To explore solutions for these issues, consider using `/superpowers:brainstorming` to design the refactoring approach before implementing changes."
 ```
