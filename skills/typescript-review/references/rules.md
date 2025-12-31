@@ -451,7 +451,62 @@ function queryUsersFromDatabase() {}
 
 ---
 
-### NAME-9: No Vestigial Hungarian Notation
+### NAME-9: Generic Naming for Multi-Entity Functions
+
+When a single function handles multiple entity types (rules, IOCs, users, etc.), use generic variable names (`itemId`, `itemName`) instead of type-specific names (`ruleId`, `iocId`). Alternatively, create separate functions per entity type.
+
+**Why:** Type-specific names in shared code become inconsistent when a third type is added. If you have `ruleId` and `iocId`, what do you name the third? Generic names scale cleanly, or separate functions avoid the problem entirely.
+
+```typescript
+// ❌ Bad: Type-specific names in shared function
+function processDeployment(payload: BulkDeployPayload) {
+  const {
+    jobId,
+    type,
+    ruleId,      // Only relevant when type === "rules"
+    ruleName,    // Only relevant when type === "rules"
+    iocId,       // Only relevant when type === "iocs"
+    iocName,     // Only relevant when type === "iocs"
+    // What happens when we add type === "alerts"? alertId? alertName?
+  } = payload;
+
+  // Now you have 6+ variables, most undefined depending on type
+}
+
+// ✅ Good Option 1: Generic names in shared function
+function processDeployment(payload: BulkDeployPayload) {
+  const {
+    jobId,
+    type,
+    itemId,      // Works for any type
+    itemName,    // Works for any type
+  } = payload;
+
+  // Clean, extensible - adding new types requires no variable changes
+}
+
+// ✅ Good Option 2: Separate functions per entity type
+function processRuleDeployment(payload: RuleDeployPayload) {
+  const { jobId, ruleId, ruleName } = payload;
+  // Rule-specific logic
+}
+
+function processIOCDeployment(payload: IOCDeployPayload) {
+  const { jobId, iocId, iocName } = payload;
+  // IOC-specific logic
+}
+
+// Dispatcher
+function processDeployment(payload: BulkDeployPayload) {
+  if (payload.type === "rules") return processRuleDeployment(payload);
+  if (payload.type === "iocs") return processIOCDeployment(payload);
+  throw new Error(`Unknown type: ${payload.type}`);
+}
+```
+
+---
+
+### NAME-10: No Vestigial Hungarian Notation
 
 Remove type prefixes like `is`, `has`, `str`, `num`, `arr`, `obj`, `date` when the type system already provides this information.
 
@@ -480,7 +535,7 @@ function canEdit(document: Document): boolean {}
 
 ---
 
-### NAME-10: Use Domain Words Instead of Concatenation
+### NAME-11: Use Domain Words Instead of Concatenation
 
 When a single domain word exists, use it instead of concatenating multiple words.
 
@@ -508,7 +563,7 @@ const glossary = getWords();
 
 ---
 
-### NAME-11: Consistent Domain Language
+### NAME-12: Consistent Domain Language
 
 Use the same terminology throughout the codebase. If you use `getCustomers`, don't introduce `fetchClients` for the same concept.
 
@@ -907,6 +962,119 @@ const Header = () => {
 };
 
 // Later, if you need it in 3+ places, THEN create ButtonWithExternalLink
+```
+
+---
+
+### REACT-6: Hooks Encapsulate Related Derived Logic
+
+When a hook provides data that requires transformation, lookup, or derived values, the hook should compute and return those values. Don't create separate utility files that consumers must import alongside the hook.
+
+**Why:** If you always need `getItemConfig(itemType)` whenever you use `useBulkDeploy()`, the hook should return `itemConfig` directly. Separate utility files create scattered logic, require multiple imports, and make code harder to maintain.
+
+```tsx
+// ❌ Bad: Hook returns raw data, utility in separate file
+// hooks/useBulkDeploy.ts
+export function useBulkDeploy() {
+  const { itemType, settings } = useContext(BulkDeployContext);
+  return { itemType, settings };
+}
+
+// types/bulk-deploy.ts
+export function getItemTypeConfig(type: BulkDeployItemType) {
+  if (type === "iocs") return { label: "IOC", fields: IOC_FIELDS };
+  if (type === "rules") return { label: "Rule", fields: RULE_FIELDS };
+}
+
+// Component.tsx - consumer must import both
+import { useBulkDeploy } from "../hooks/useBulkDeploy";
+import { getItemTypeConfig } from "@/types/bulk-deploy";
+
+function DeploySettings() {
+  const { itemType, settings } = useBulkDeploy();
+  const config = getItemTypeConfig(itemType); // Always needed with the hook
+  // ...
+}
+
+// ✅ Good: Hook encapsulates the derived logic
+// hooks/useBulkDeploy.ts
+function getItemTypeConfig(type: BulkDeployItemType) {
+  if (type === "iocs") return { label: "IOC", fields: IOC_FIELDS };
+  if (type === "rules") return { label: "Rule", fields: RULE_FIELDS };
+  throw new Error(`Unknown type: ${type}`);
+}
+
+export function useBulkDeploy() {
+  const { itemType, settings } = useContext(BulkDeployContext);
+  const config = getItemTypeConfig(itemType);
+
+  return {
+    itemType,
+    settings,
+    itemLabel: config.label,
+    updatableFields: config.fields,
+  };
+}
+
+// Component.tsx - single import, all derived values included
+import { useBulkDeploy } from "../hooks/useBulkDeploy";
+
+function DeploySettings() {
+  const { itemType, settings, itemLabel, updatableFields } = useBulkDeploy();
+  // Everything needed is returned from the hook
+}
+```
+
+---
+
+## Project Structure
+
+### STRUCT-1: Types Folder Contains Only Types
+
+The `types/` folder should only contain type definitions: interfaces, types, type aliases, and enums. Functions, classes with methods, and runtime logic belong elsewhere (utils/, helpers/, services/, or feature folders).
+
+**Why:** Type files are for compile-time constructs that disappear after transpilation. Mixing runtime code with types breaks the mental model, makes imports confusing, and violates separation of concerns.
+
+```typescript
+// ❌ Bad: Function inside types folder
+// src/types/bulk-deploy.ts
+export type BulkDeployItemType = "iocs" | "rules";
+
+export interface ItemTypeConfig {
+  label: string;
+  fields: string[];
+}
+
+// This function does NOT belong here - it's runtime logic
+export function getItemTypeConfig(type: BulkDeployItemType): ItemTypeConfig {
+  if (type === "iocs") return { label: "IOC", fields: IOC_FIELDS };
+  if (type === "rules") return { label: "Rule", fields: RULE_FIELDS };
+  throw new Error(`Unknown type: ${type}`);
+}
+
+// ✅ Good: Types folder has only types
+// src/types/bulk-deploy.ts
+export type BulkDeployItemType = "iocs" | "rules";
+
+export interface ItemTypeConfig {
+  label: string;
+  fields: string[];
+}
+
+export interface BulkDeployPayload {
+  type: BulkDeployItemType;
+  itemId: string;
+  itemName: string;
+}
+
+// src/utils/bulk-deploy.ts (or in the hook itself per REACT-6)
+import { BulkDeployItemType, ItemTypeConfig } from "@/types/bulk-deploy";
+
+export function getItemTypeConfig(type: BulkDeployItemType): ItemTypeConfig {
+  if (type === "iocs") return { label: "IOC", fields: IOC_FIELDS };
+  if (type === "rules") return { label: "Rule", fields: RULE_FIELDS };
+  throw new Error(`Unknown type: ${type}`);
+}
 ```
 
 ---
