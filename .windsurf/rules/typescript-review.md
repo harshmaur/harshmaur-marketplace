@@ -1,0 +1,1 @@
+../skills/typescript-review/references/rules.md

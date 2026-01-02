@@ -1,0 +1,14 @@
+# Harsh Maur's TypeScript Code Review
+
+When reviewing TypeScript/JavaScript code, apply all rules from `.windsurf/rules/typescript-review.md`.
+
+## Quick Reference
+
+Use `/typescript-review` or ask to "review code against Harsh's standards" to trigger a full code review.
+
+## Review Process
+
+1. Read the full rules in `.windsurf/rules/typescript-review.md`
+2. Analyze code against each applicable rule
+3. Report violations with: rule ID, problematic code, corrected example
+4. End with a summary table showing pass/fail by category

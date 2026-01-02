@@ -17,7 +17,7 @@ Code should be written to gracefully handle future requirements, with names that
 | EXT-1 | Enum-Style Modes            | Use `mode: 'IOC' \| 'RULES'` instead of `isIOCMode: boolean`   |
 | EXT-2 | Separate Functions          | Split variant logic into separate functions + shared helper    |
 | EXT-3 | Separate UI Pages           | Split variant UIs into separate pages + shared components      |
-| EXT-4 | Avoid Non-Boolean Ternaries | Use helper functions instead of ternaries for mode-based logic |
+| EXT-4 | Avoid Implicit Fallbacks    | Explicit checks for all enum values; no implicit else for non-booleans |
 
 ### Type Safety
 
@@ -69,13 +69,34 @@ Code should be written to gracefully handle future requirements, with names that
 ### Claude Code
 
 ```bash
-/plugin marketplace add harshmaur/harshmaur-marketplace
-/plugin install harshmaur-typescript-review@harshmaur-marketplace
+claude plugin add harshmaur/harshmaur-marketplace
+claude plugin install harshmaur-typescript-review@harshmaur-marketplace
 ```
+
+### Windsurf
+
+Run this in your project directory:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/harshmaur/harshmaur-marketplace/main/install-windsurf.sh | bash
+```
+
+To **update** to the latest rules, run the same command again.
 
 ## Usage
 
-In claude code, say "review my code for last x commits on this branch using harshmaur-typescript-review" and ask for a review. Claude will automatically apply these rules.
+### Claude Code
+
+Say "review my code using harshmaur-typescript-review" or use the skill directly.
+
+### Windsurf
+
+Use any of these slash commands:
+- `/typescript-review`
+- `/review-ts`
+- `/harsh-review`
+
+Or ask Cascade: "Review this code against Harsh's TypeScript standards"
 
 ## Contributing
 

@@ -122,11 +122,11 @@ function RulesPage() {
 
 ---
 
-### EXT-4: Avoid Ternaries for Non-Boolean Conditions
+### EXT-4: Avoid Implicit Fallbacks for Non-Boolean Conditions
 
-Use ternaries only for true boolean conditions. For mode/type-based logic, use functions or if-else.
+Never use implicit fallbacks (ternary else or if/else without explicit check) for enum-style types. Every possible value must be explicitly handled.
 
-**Why:** Ternaries assume exactly 2 outcomes. They silently break when a third option is added.
+**Why:** Implicit fallbacks assume exactly 2 outcomes. When a third option is added, the fallback silently handles it incorrectly instead of failing loudly.
 
 ```typescript
 // ❌ Bad: Ternary assumes only 2 modes forever
@@ -136,19 +136,31 @@ const label = mode === "IOC" ? "IOC Label" : "Rules Label";
 // ❌ Bad: Ternary in JSX
 <span>{mode === "IOC" ? "Processing IOC..." : "Processing Rules..."}</span>;
 
+// ❌ Bad: Implicit else assumes only 2 types forever
+if (type === "iocs") {
+  processIoc(data);
+} else {
+  processRule(data);  // What if type === "alerts"? Silent bug!
+}
+
 // ✅ Good: Helper function handles all cases explicitly
 function getModeLabel(mode: ProcessingMode): string {
   if (mode === "IOC") return "IOC Label";
   if (mode === "RULES") return "Rules Label";
   if (mode === "HYBRID") return "Hybrid Label";
-  // TypeScript will error if a case is missing (with exhaustive checks)
   throw new Error(`Unknown mode: ${mode}`);
 }
 
-const label = getModeLabel(mode);
-<span>{getModeLabel(mode)}</span>;
+// ✅ Good: Explicit check for each type + throw for unknown
+if (type === "iocs") {
+  processIoc(data);
+} else if (type === "rules") {
+  processRule(data);
+} else {
+  throw new Error(`Unknown type: ${type}`);
+}
 
-// ✅ OK: Ternary for actual booleans
+// ✅ OK: Ternary/implicit else for actual booleans
 const statusText = isLoading ? "Loading..." : "Ready";
 const icon = hasError ? <ErrorIcon /> : <SuccessIcon />;
 ```
