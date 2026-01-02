@@ -457,6 +457,26 @@ When a single function handles multiple entity types (rules, IOCs, users, etc.),
 
 **Why:** Type-specific names in shared code become inconsistent when a third type is added. If you have `ruleId` and `iocId`, what do you name the third? Generic names scale cleanly, or separate functions avoid the problem entirely.
 
+**This rule applies to:**
+
+- Interface/type field names
+- Variable names in shared functions
+- Function/setter names exposed from hooks or utilities
+
+```typescript
+// ❌ Bad: Type-specific setters exposed from shared hook
+const { setSelectedRules, setSelectedIOCs } = useBulkDeploy();
+if (itemType === "iocs") {
+  setSelectedIOCs(items);
+} else {
+  setSelectedRules(items);
+}
+
+// ✅ Good: Generic setter that encapsulates type dispatch
+const { setSelectedItems } = useBulkDeploy();
+setSelectedItems(items); // Hook handles type internally
+```
+
 ```typescript
 // ❌ Bad: Type-specific names in shared function
 function processDeployment(payload: BulkDeployPayload) {
