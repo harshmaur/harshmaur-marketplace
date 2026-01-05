@@ -1059,6 +1059,105 @@ function DeploySettings() {
 
 ---
 
+### REACT-7: Data Hooks Return Display-Ready Values in Nested Object
+
+When a hook fetches data that will be displayed in UI, the hook should return pre-formatted display values in a nested `formatted` object alongside the raw data. Don't duplicate formatting functions across multiple components.
+
+**Why:** If every component that uses `useBulkDeployJobs()` needs to call `getJobStatusDisplay(job.status)` or `getTypeLabel(job.type)`, that formatting logic should be centralized in the hook. Duplicating formatting functions across components violates DRY, creates inconsistency risk, and scatters display logic. Using a nested `formatted` object keeps the original data structure intact.
+
+**This applies to:**
+- Enum-to-label mappings (status → "In Progress", type → "Rules")
+- Badge kind/color mappings
+- Date formatting
+- Any transformation from raw data to display string
+
+```tsx
+// ❌ Bad: Formatting functions duplicated in every component
+// hooks/useBulkDeployJobs.ts
+export function useBulkDeployJobs() {
+  const { data } = useQuery(...);
+  return { jobs: data?.jobs || [] };
+}
+
+// page.tsx - has its own formatting functions
+function getTypeLabel(type: BulkDeployItemType): string {
+  if (type === "rules") return "Rules";
+  if (type === "iocs") return "IOCs";
+  throw new Error(`Unknown type: ${type}`);
+}
+
+// JobDetailsDrawer.tsx - SAME functions duplicated again
+function getTypeLabel(type: BulkDeployItemType): string { ... }
+
+// ✅ Good: Hook returns display-ready values in nested formatted object
+// types/bulk-deploy.ts
+export interface BulkDeployJobFormatted {
+  typeLabel: string;
+  statusLabel: string;
+  statusBadgeKind: "blue" | "green";
+  progressText: string;
+  createdAt: string;
+}
+
+export interface BulkDeployJobWithFormatted extends BulkDeployJob {
+  formatted: BulkDeployJobFormatted;
+}
+
+// hooks/useBulkDeployJobs.ts - single function returns all formatted values
+function getJobFormatted(job: BulkDeployJob): BulkDeployJobFormatted {
+  let typeLabel: string;
+  if (job.type === "rules") {
+    typeLabel = "Rules";
+  } else if (job.type === "iocs") {
+    typeLabel = "IOCs";
+  } else {
+    throw new Error(`Unknown item type: ${job.type}`);
+  }
+
+  let statusLabel: string;
+  let statusBadgeKind: "blue" | "green";
+  if (job.status === "in_progress") {
+    statusLabel = "In Progress";
+    statusBadgeKind = "blue";
+  } else if (job.status === "completed") {
+    statusLabel = "Completed";
+    statusBadgeKind = "green";
+  } else {
+    throw new Error(`Unknown job status: ${job.status}`);
+  }
+
+  // ... other formatted fields
+
+  return {
+    typeLabel,
+    statusLabel,
+    statusBadgeKind,
+    progressText,
+    createdAt: new Date(job.createdAt).toLocaleString(),
+  };
+}
+
+function formatJob(job: BulkDeployJob): BulkDeployJobWithFormatted {
+  return {
+    ...job,
+    formatted: getJobFormatted(job),
+  };
+}
+
+export function useBulkDeployJobs() {
+  const { data } = useQuery(...);
+  const jobs = (data?.jobs || []).map(formatJob);
+  return { jobs };
+}
+
+// Components just use the pre-formatted values - no local formatting needed
+<BadgeCell value={job.formatted.statusLabel} kind={BADGE_KIND_MAP[job.formatted.statusBadgeKind]} />
+<span>{job.formatted.progressText}</span>
+<SimpleTextCell value={job.formatted.createdAt} />
+```
+
+---
+
 ## Project Structure
 
 ### STRUCT-1: Types Folder Contains Only Types

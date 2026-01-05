@@ -8,7 +8,7 @@ A Claude skill that reviews TypeScript code against my personal coding standards
 
 Code should be written to gracefully handle future requirements, with names that communicate clearly and components that compose elegantly.
 
-## Rules Included (24 Rules)
+## Rules Included (26 Rules)
 
 ### Extensibility & Future-Proofing
 
@@ -63,6 +63,8 @@ Code should be written to gracefully handle future requirements, with names that
 | REACT-3 | Be Intentional About Props | Props are fine if meaningful and reused; avoid one-off props       |
 | REACT-4 | Default Props              | Always provide defaults for backwards compatibility                |
 | REACT-5 | Check Usage Frequency      | One-off? Don't modify component. Many places? Compose or add prop. |
+| REACT-6 | Hooks Encapsulate Logic    | Hooks return derived values; don't create separate utility files   |
+| REACT-7 | Display-Ready Values       | Data hooks return pre-formatted values in nested `formatted` object |
 
 ## Installation
 

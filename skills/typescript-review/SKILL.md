@@ -7,15 +7,53 @@ description: Review TypeScript code against Harsh Maur's personal coding standar
 
 Review TypeScript code against Harsh Maur's coding rules in `references/rules.md`.
 
+## CRITICAL: Complete Coverage Required
+
+**You MUST review ALL files and check ALL rules. Partial reviews are not acceptable.**
+
+### File Coverage
+
+1. **Determine scope first:**
+   - If user specifies files → review those exact files
+   - If user says "review my changes" → get ALL changed files via `git diff --name-only` or `git status`
+   - If user points to a directory → review ALL `.ts`, `.tsx`, `.js`, `.jsx` files in it
+   - If ambiguous → ASK the user which files to review
+
+2. **List files before reviewing:** Always print the list of files you will review BEFORE starting. Example:
+   ```
+   ## Files to Review (4 files)
+   - src/hooks/useBulkDeploy.ts
+   - src/components/DeployTable.tsx
+   - src/types/bulk-deploy.ts
+   - src/pages/deploy/index.tsx
+   ```
+
+3. **Review each file completely** before moving to the next file.
+
+### Rule Coverage
+
+**For EACH file, systematically check ALL rule categories:**
+
+1. **Extensibility (EXT-1 to EXT-4):** Boolean flags? Implicit fallbacks? Separate functions per variant?
+2. **Type Safety (TYPE-1):** Any `any` types?
+3. **Naming (NAME-1 to NAME-12):** Spelling? Abbreviation casing? Meaningless names? Abstract names? Single letters?
+4. **Comments (COMMENT-1 to COMMENT-2):** "What" comments? Undocumented anti-patterns?
+5. **Code Style (STYLE-1):** Implicit type coercion (`!!`, `+str`)?
+6. **React (REACT-1 to REACT-7):** Composition vs props? Enum props? Hook encapsulation? Display-ready values?
+7. **Structure (STRUCT-1):** Functions in types folder?
+
+**Do NOT skip categories.** If a category doesn't apply to a file (e.g., no React in a utility file), explicitly note "N/A" for that category.
+
 ## Review Process
 
 1. Read `references/rules.md` (in this skill's folder) to load all coding rules
-2. Analyze the provided code against each applicable rule
-3. Report violations with:
+2. List all files in scope
+3. For EACH file: check EVERY rule category systematically
+4. Report violations with:
    - The rule violated
    - The problematic code snippet
    - A corrected example
-4. Praise code that follows the rules well
+5. Note what's done well
 
 ## Output Format
 
@@ -43,8 +81,16 @@ Always end with this copy-paste friendly summary:
 
 ## Code Review Summary
 
-**Files Reviewed:** [list files]
+**Files Reviewed:** [N] files
 **Review Date:** [date]
+
+### Coverage Verification
+
+| File | EXT | TYPE | NAME | COMMENT | STYLE | REACT | STRUCT |
+|------|-----|------|------|---------|-------|-------|--------|
+| `useBulkDeploy.ts` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A |
+| `DeployTable.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A |
+| `types/bulk-deploy.ts` | N/A | ✓ | ✓ | N/A | N/A | N/A | ✓ |
 
 ### Results by Category
 
@@ -81,8 +127,15 @@ When all checks pass:
 
 ## Code Review Summary
 
-**Files Reviewed:** [list files]
+**Files Reviewed:** [N] files
 **Review Date:** [date]
+
+### Coverage Verification
+
+| File | EXT | TYPE | NAME | COMMENT | STYLE | REACT | STRUCT |
+|------|-----|------|------|---------|-------|-------|--------|
+| `file1.ts` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A |
+| `file2.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A |
 
 ### Results by Category
 
