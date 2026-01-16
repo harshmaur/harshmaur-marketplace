@@ -734,6 +734,83 @@ const str2 = numberValue.toString();
 
 ---
 
+### STYLE-2: No Unused Code Added for Future Features
+
+Never add variables, functions, types, interfaces, or any other code that isn't immediately used. If something will be needed for a future feature, add it when that feature is implemented.
+
+**Why:** Unused code creates confusion, increases maintenance burden, and often becomes stale or incorrect by the time it's actually needed. The future requirement may change, making the pre-written code wrong or unnecessary. Write code for what you need NOW, not what you MIGHT need later.
+
+```typescript
+// ❌ Bad: Adding unused code for "future" features
+interface UserSettings {
+  theme: "light" | "dark";
+  language: string;
+  // Added for future notification feature
+  notificationPreferences?: NotificationPreferences;  // NOT USED YET
+  // Added for future analytics feature
+  analyticsConsent?: boolean;  // NOT USED YET
+}
+
+// Unused type waiting for future feature
+type NotificationPreferences = {
+  email: boolean;
+  push: boolean;
+  sms: boolean;
+};
+
+// Unused function "for later"
+function formatNotificationMessage(message: string): string {
+  // Will be used when we implement notifications
+  return message.trim();
+}
+
+// Unused constant "we might need this"
+const MAX_NOTIFICATION_RETRIES = 3;
+
+// ✅ Good: Only code that is actually used
+interface UserSettings {
+  theme: "light" | "dark";
+  language: string;
+  // Only fields that are currently used
+}
+
+// When notification feature is implemented, THEN add:
+// - NotificationPreferences type
+// - notificationPreferences field
+// - formatNotificationMessage function
+// - MAX_NOTIFICATION_RETRIES constant
+```
+
+```typescript
+// ❌ Bad: Unused function parameters "for future flexibility"
+function processOrder(
+  order: Order,
+  options?: ProcessOptions,  // NOT USED - "might need options later"
+  callback?: () => void      // NOT USED - "might need callback later"
+) {
+  // Only uses order, ignores options and callback
+  return saveOrder(order);
+}
+
+// ❌ Bad: Unused exports "someone might need these"
+export {
+  processOrder,
+  validateOrder,      // NOT USED anywhere
+  formatOrderId,      // NOT USED anywhere
+  ORDER_STATUS_MAP,   // NOT USED anywhere
+};
+
+// ✅ Good: Only export what's actually imported elsewhere
+export { processOrder };
+
+// ✅ Good: Only parameters that are used
+function processOrder(order: Order) {
+  return saveOrder(order);
+}
+```
+
+---
+
 ## React Components
 
 ### REACT-1: Use Composition Over Props for Behavior Changes

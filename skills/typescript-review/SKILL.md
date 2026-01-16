@@ -1,7 +1,7 @@
 ---
 name: harshmaur-typescript-review
 description: >
-  Review TypeScript code against Harsh Maur's personal coding standards focused on extensibility, naming quality, and code clarity. Use when reviewing TypeScript/JavaScript code, providing code feedback, or when asked to check code quality. Enforces Harsh's opinions on: (1) Extensibility - enum-style modes over booleans, separate functions per variant, no ternaries for non-boolean conditions; (2) Naming - no spelling mistakes, abbreviations capitalized only when not first word (getUserAPI but xmlParser), userId exception for id, no meaningless/abstract names, no single-letter variables, consistent domain language, generic naming for multi-entity functions; (3) Comments - explain "why" not "what", always document anti-patterns; (4) Code Style - explicit type coercion, strict typing; (5) React Components - composition over props for behavior, enum props for visual variants, minimize props, check usage frequency before modifying shared components, always use default props for backwards compatibility, hooks must encapsulate related derived logic; (6) Project Structure - types folder contains only types, no runtime functions.
+  Review TypeScript code against Harsh Maur's personal coding standards focused on extensibility, naming quality, and code clarity. Use when reviewing TypeScript/JavaScript code, providing code feedback, or when asked to check code quality. Enforces Harsh's opinions on: (1) Extensibility - enum-style modes over booleans, separate functions per variant, no ternaries for non-boolean conditions; (2) Naming - no spelling mistakes, abbreviations capitalized only when not first word (getUserAPI but xmlParser), userId exception for id, no meaningless/abstract names, no single-letter variables, consistent domain language, generic naming for multi-entity functions; (3) Comments - explain "why" not "what", always document anti-patterns; (4) Code Style - explicit type coercion, strict typing, NO UNUSED CODE added for future features (variables, functions, types, exports must be used immediately - add them when the feature is implemented, not before); (5) React Components - composition over props for behavior, enum props for visual variants, minimize props, check usage frequency before modifying shared components, always use default props for backwards compatibility, hooks must encapsulate related derived logic; (6) Project Structure - types folder contains only types, no runtime functions.
 ---
 
 # Harsh Maur's TypeScript Code Review
@@ -41,7 +41,7 @@ Review TypeScript code against Harsh Maur's coding rules in `references/rules.md
 2. **Type Safety (TYPE-1):** Any `any` types?
 3. **Naming (NAME-1 to NAME-12):** Spelling? Abbreviation casing? Meaningless names? Abstract names? Single letters?
 4. **Comments (COMMENT-1 to COMMENT-2):** "What" comments? Undocumented anti-patterns?
-5. **Code Style (STYLE-1):** Implicit type coercion (`!!`, `+str`)?
+5. **Code Style (STYLE-1 to STYLE-2):** Implicit type coercion (`!!`, `+str`)? Unused code added for future features?
 6. **React (REACT-1 to REACT-7):** Composition vs props? Enum props? Hook encapsulation? Display-ready values?
 7. **Structure (STRUCT-1):** Functions in types folder?
 
