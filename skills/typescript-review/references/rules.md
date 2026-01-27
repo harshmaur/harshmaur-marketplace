@@ -633,6 +633,8 @@ Don't write comments that explain what code does - that's visible from reading t
 
 **Why:** Comments explaining "what" become outdated and redundant. Comments explaining "why" preserve crucial context that isn't visible in the code itself.
 
+**TypeScript types are self-documenting:** Don't add JSDoc comments that just describe the available options when the type definition already shows them. The type IS the documentation.
+
 ```typescript
 // ❌ Bad: Comments explaining what the code does
 // Loop through users
@@ -664,6 +666,29 @@ for (const user of users) {
 counter++;
 
 return result;
+
+// ❌ Bad: JSDoc that just repeats what the type already shows
+/**
+ * Tooltip configuration using standard tooltip props.
+ * - 'content': ReactNode - tooltip content (required)
+ * - 'placement': 'top-start' | 'top-center' | 'bottom-end' etc. (default: 'top-center')
+ * - 'variant': 'singleline' | 'multiline' (default: 'singleline')
+ * - 'maxHeight': number | string - enables scrollable content when provided
+ * - 'maxWidth': number | string (default: 236)
+ * - 'disabled': boolean - disable tooltip
+ */
+tooltip?: StandardTooltipProps;
+
+// The type StandardTooltipProps already defines all of this!
+// Adding this comment on every file is useless - the Type already specifies
+// what options are available.
+
+// ✅ Good: Let the type be the documentation
+tooltip?: StandardTooltipProps;
+
+// ✅ OK: Comment only if there's a non-obvious "why"
+// Tooltip disabled during drag operations to prevent z-index conflicts
+tooltip?: StandardTooltipProps;
 ```
 
 ---
@@ -736,7 +761,7 @@ const str2 = numberValue.toString();
 
 ### STYLE-2: No Unused Code Added for Future Features
 
-Never add variables, functions, types, interfaces, or any other code that isn't immediately used. If something will be needed for a future feature, add it when that feature is implemented.
+Never add variables, functions, types, interfaces, exports, or any other code that isn't immediately used. If something will be needed for a future feature, add it when that feature is implemented. Before adding any code, ask: "Is this being used anywhere right now?"
 
 **Why:** Unused code creates confusion, increases maintenance burden, and often becomes stale or incorrect by the time it's actually needed. The future requirement may change, making the pre-written code wrong or unnecessary. Write code for what you need NOW, not what you MIGHT need later.
 
@@ -807,6 +832,87 @@ export { processOrder };
 function processOrder(order: Order) {
   return saveOrder(order);
 }
+```
+
+---
+
+### STYLE-3: Delete Unnecessary Type Aliases
+
+Delete type aliases that simply re-export another type without adding value. If `type A = B` doesn't add constraints, narrowing, or documentation, just use `B` directly.
+
+**Why:** Unnecessary type aliases add indirection without benefit. They create extra symbols to maintain, can cause confusion about which type to use, and clutter the codebase.
+
+```typescript
+// ❌ Bad: Type alias that adds nothing
+export type BadgeTooltipProps = StandardTooltipProps;
+export type ButtonTooltipProps = StandardTooltipProps;
+export type CardTooltipProps = StandardTooltipProps;
+
+// Now you have 4 types that all mean the same thing
+const props: BadgeTooltipProps = { content: "hi" };
+const props2: StandardTooltipProps = { content: "hi" }; // Same thing!
+
+// ✅ Good: Just use the original type directly
+import { StandardTooltipProps } from './tooltip';
+
+// In Badge component:
+interface BadgeProps {
+  tooltip?: StandardTooltipProps;  // Use directly, no alias needed
+}
+
+// In Button component:
+interface ButtonProps {
+  tooltip?: StandardTooltipProps;  // Same type, no alias
+}
+
+// ✅ OK: Type alias that adds value (narrowing, extending, or documenting)
+// Narrowing - restricts the original type
+export type BadgePlacement = Extract<TooltipPlacement, 'top' | 'bottom'>;
+
+// Extending - adds new properties
+export type BadgeTooltipProps = StandardTooltipProps & {
+  showOnBadgeHover?: boolean;
+};
+
+// Documenting domain concept - gives semantic meaning
+export type UserId = string;  // OK if this represents a domain concept
+```
+
+---
+
+### STYLE-4: Prefer Spread Operator for Prop Forwarding
+
+When passing an object's properties through to another component or function, use the spread operator instead of manually listing each property.
+
+**Why:** Spread operators are concise, automatically forward all properties, and don't require updates when the source object gains new properties. Manual listing is verbose, error-prone, and requires maintenance.
+
+```typescript
+// ❌ Bad: Manually listing properties
+<Tooltip
+  content={action.tooltip.content}
+  placement={action.tooltip.placement}
+  variant={action.tooltip.variant}
+  maxWidth={action.tooltip.maxWidth}
+/>
+
+// What if tooltip gains a new property? You have to add it here too.
+
+// ❌ Bad: Creating intermediate object with same properties
+const tooltipProps = {
+  content: tooltip.content,
+  placement: tooltip.placement,
+  variant: tooltip.variant,
+};
+<Tooltip {...tooltipProps} />
+
+// ✅ Good: Spread operator
+<Tooltip {...action.tooltip} />
+
+// ✅ Good: Spread with overrides (override comes after spread)
+<Tooltip {...action.tooltip} placement="top" />
+
+// ✅ Good: Conditional spread
+<Tooltip {...(showExtra && extraProps)} content={content} />
 ```
 
 ---
@@ -1284,6 +1390,181 @@ export function getItemTypeConfig(type: BulkDeployItemType): ItemTypeConfig {
   throw new Error(`Unknown type: ${type}`);
 }
 ```
+
+---
+
+### REACT-9: No Redundant Props
+
+Don't add two props that accomplish the same thing or overlap significantly. If you find yourself asking "why two props?", consolidate into one.
+
+**Why:** Redundant props create confusion about which to use, increase API surface area unnecessarily, and often indicate unclear component design.
+
+```tsx
+// ❌ Bad: Two props for similar purposes
+interface TooltipProps {
+  content?: ReactNode;
+  tooltipContent?: ReactNode;  // Why two props? Which one takes precedence?
+}
+
+// ❌ Bad: Overlapping functionality
+interface ButtonProps {
+  isDisabled?: boolean;
+  disabled?: boolean;  // Same thing, different name
+}
+
+// ❌ Bad: Split configuration that should be unified
+interface BadgeProps {
+  tooltipText?: string;
+  tooltipConfig?: TooltipConfig;  // Why not just accept both in one prop?
+}
+
+// ✅ Good: Single prop with clear purpose
+interface TooltipProps {
+  content: ReactNode;
+}
+
+// ✅ Good: One prop, flexible type (see REACT-8)
+interface BadgeProps {
+  tooltip?: string | TooltipConfig;  // One prop handles both cases
+}
+```
+
+---
+
+### REACT-10: No Unnecessary Customization
+
+Don't add props for customization that isn't needed. If you find yourself asking "why custom? what's the need for this?", remove it.
+
+**Why:** Every prop is API surface that must be maintained. Props should solve real, demonstrated needs - not hypothetical future flexibility. When in doubt, leave it out.
+
+```tsx
+// ❌ Bad: Props for hypothetical customization
+interface TooltipProps {
+  content: ReactNode;
+  customClassName?: string;      // Is anyone using this?
+  customStyle?: CSSProperties;   // What's the need for this?
+  customPortalTarget?: Element;  // Why would someone need this?
+  renderCustomArrow?: () => ReactNode;  // Over-engineering
+}
+
+// ❌ Bad: Exposing internal implementation details
+interface ModalProps {
+  animationDuration?: number;
+  backdropOpacity?: number;
+  zIndexOverride?: number;
+}
+
+// ✅ Good: Only props with demonstrated need
+interface TooltipProps {
+  content: ReactNode;
+  placement?: TooltipPlacement;
+  // Add more props WHEN someone actually needs them
+}
+
+// ✅ Good: Sensible defaults, minimal API
+interface ModalProps {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}
+```
+
+**Before adding any prop, ask:**
+1. Is someone actively asking for this?
+2. Do we have a concrete use case right now?
+3. If the answer is "might be useful someday" - don't add it.
+
+---
+
+### REACT-11: Props Must Be Self-Explanatory
+
+Prop names should be clear enough that you never have to ask "what does this prop do?" If someone asks that question, the naming is wrong.
+
+**Why:** Props are the public API of your component. If the name doesn't communicate purpose clearly, consumers will misuse it or avoid it. Good names eliminate the need for documentation.
+
+```tsx
+// ❌ Bad: Unclear prop names that prompt "what does this do?"
+interface BadgeProps {
+  mode?: string;           // Mode of what?
+  config?: object;         // Config for what?
+  options?: Options;       // What options?
+  data?: any;              // What data?
+  flag?: boolean;          // Flag for what?
+  type?: string;           // Type of what?
+  custom?: boolean;        // Custom what?
+  handler?: () => void;    // Handles what?
+}
+
+// ✅ Good: Self-explanatory prop names
+interface BadgeProps {
+  variant?: 'solid' | 'subtle';           // Visual variant
+  tooltip?: string | TooltipConfig;       // Tooltip configuration
+  iconPosition?: 'left' | 'right';        // Where the icon appears
+  onDismiss?: () => void;                 // Called when dismissed
+  isInteractive?: boolean;                // Whether it responds to clicks
+}
+
+// ✅ Good: Names that read naturally
+<Badge
+  variant="subtle"
+  tooltip="Click to view details"
+  iconPosition="right"
+  onDismiss={handleDismiss}
+/>
+// vs
+<Badge
+  mode="2"
+  config={{ x: true }}
+  handler={fn}
+/>
+```
+
+**Test:** Read the prop name out loud. If you need to check the implementation to understand it, rename it.
+
+---
+
+### REACT-8: Accept Flexible Input Types, Normalize Internally
+
+When a prop could reasonably be a simple value or a complex object, accept both and normalize internally. Don't force users to wrap simple cases in objects.
+
+**Why:** Requiring objects for simple cases adds verbosity. If most uses are simple strings but some need configuration, accept `string | ConfigObject` and normalize inside the component. This provides convenience for simple cases while supporting complex ones.
+
+```tsx
+// ❌ Bad: Always requiring object, even for simple cases
+// User must write: tooltip={{ content: "Hello" }} even for simple text
+interface BadgeProps {
+  tooltip?: {
+    content: ReactNode;
+    placement?: TooltipPlacement;
+    variant?: TooltipVariant;
+  };
+}
+
+// Usage is verbose for simple cases:
+<Badge tooltip={{ content: "Simple tooltip" }} />
+
+// ✅ Good: Accept both string and object
+interface BadgeProps {
+  tooltip?: string | TooltipConfig;
+}
+
+// Normalize internally
+function Badge({ tooltip, ...props }: BadgeProps) {
+  const normalizedTooltip = typeof tooltip === 'string'
+    ? { content: tooltip }
+    : tooltip;
+
+  // Use normalizedTooltip which is always TooltipConfig | undefined
+}
+
+// Usage is clean for simple cases:
+<Badge tooltip="Simple tooltip" />
+
+// And still supports complex cases:
+<Badge tooltip={{ content: "Complex", placement: "bottom", variant: "multiline" }} />
+```
+
+**Apply consistently:** If you accept `string | object` in one component, do it in ALL components that use that prop type. Don't have Badge accept string but Button require object.
 
 ---
 
