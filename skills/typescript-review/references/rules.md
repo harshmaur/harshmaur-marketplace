@@ -8,6 +8,8 @@ Use a `mode` or `type` variable with explicit values instead of boolean flags li
 
 **Why:** Boolean flags assume only 2 states. Adding a third mode requires renaming variables and refactoring all conditions.
 
+**Scope:** Only flag booleans that represent a MODE or TYPE likely to grow a third variant - state machines, processing modes, entity kinds. Do NOT flag simple one-off or leaf config booleans (`disabled`, `isLoading`, `showBorder`); those are genuinely binary and forcing them into an enum is over-engineering.
+
 ```typescript
 // ❌ Bad: Boolean flag locks you into 2 modes
 const isIOCMode = true;
@@ -241,6 +243,8 @@ legacyWidget.render(container);
 Variable names, function names, and comments must be spelled correctly.
 
 **Why:** Spelling mistakes cause confusion, make code harder to search, and look unprofessional. Typos in variable names can also cause bugs when someone searches for the correct spelling.
+
+**Scope:** NAME-1 is strictly about misspelled words. A name that is spelled correctly but misleading - it doesn't match what the value actually does - is not a NAME-1 issue; flag that under NAME-13 (Names Must Match Behavior).
 
 ```typescript
 // ❌ Bad: Spelling mistakes
@@ -1177,6 +1181,8 @@ const SomeComponent = () => {
 Think hard before adding any prop to a component. Each prop should provide meaningful functionality that will be used across many places.
 
 **Why:** Components with too many one-off props become hard to use and maintain. But core/base components CAN have more props if each prop represents genuinely reusable functionality.
+
+**Scope:** REACT-3 is about whether a prop should exist at all - prop necessity and design. It is NOT about a component's runtime behavior. Controlled-vs-uncontrolled input correctness (a `value` prop with no `onChange`, mixing `defaultValue` with `value`) is a correctness bug, not a prop-design issue - flag it under Logic & Correctness (LOGIC), not REACT-3.
 
 **Before adding a prop, ask:**
 
