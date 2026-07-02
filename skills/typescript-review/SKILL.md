@@ -38,16 +38,16 @@ Review TypeScript code against Harsh Maur's coding rules in `references/rules.md
 **For EACH file, systematically check ALL rule categories:**
 
 1. **Extensibility (EXT-1 to EXT-4):** Boolean flags? Implicit fallbacks? Separate functions per variant?
-2. **Type Safety (TYPE-1 to TYPE-2):** Any `any` types? Unjustified escape hatches (`@ts-ignore`, `as unknown`)?
+2. **Type Safety (TYPE-1 to TYPE-3):** Any `any` types? Unjustified escape hatches (`@ts-ignore`, `as unknown`)? Redundant runtime checks for already-typed values?
 3. **Naming (NAME-1 to NAME-13):** Spelling? Abbreviation casing? Meaningless names? Abstract names? Single letters? Names that don't match behavior?
 4. **Comments (COMMENT-1 to COMMENT-3):** "What" comments? Redundant JSDoc that repeats types? Undocumented anti-patterns? Stale TODOs?
-5. **Code Style (STYLE-1 to STYLE-5):** Implicit type coercion (`!!`, `+str`)? Unused code? Unnecessary type aliases? Manual prop forwarding instead of spread? Optional booleans without a default?
+5. **Code Style (STYLE-1 to STYLE-6):** Implicit type coercion (`!!`, `+str`)? Unused code? Unnecessary type aliases? Manual prop forwarding instead of spread? Optional booleans without a default? Unjustified new conditions/wrappers/abstractions?
 6. **React (REACT-1 to REACT-11):** Composition vs props? Enum props? Hook encapsulation? Display-ready values? Flexible input types?
 7. **Structure (STRUCT-1):** Functions in types folder?
-8. **Logic (LOGIC-1 to LOGIC-2):** Duplicate if/else or switch branches? Unhandled edge cases in guards (empty collections, null, missing `await`)?
+8. **Logic (LOGIC-1 to LOGIC-4):** Duplicate if/else or switch branches? Unhandled edge cases in guards (empty collections, null, missing `await`)? Conditions/messages that don't match their actual case? Uncontrolled inputs, missing effect dependencies, or stale loading flags?
 9. **Performance & Scale (SCALE-1 to SCALE-2):** In-memory filtering of large collections? Unbounded or hardcoded-high-limit queries?
 10. **Debug Artifacts (DEBUG-1 to DEBUG-2):** Stray test identifiers in production? Leftover `console.log`/`console.debug`?
-11. **Security (SEC-1):** Client-supplied owner/tenant IDs trusted without a server-side authorization check?
+11. **Security (SEC-1):** Client-supplied owner/tenant IDs trusted without a server-side authorization check? Every scoping key verified when a resource has more than one?
 
 **Do NOT skip categories.** If a category doesn't apply to a file (e.g., no React in a utility file), explicitly note "N/A" for that category.
 
