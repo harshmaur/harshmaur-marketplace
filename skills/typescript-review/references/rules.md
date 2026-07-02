@@ -8,6 +8,8 @@ Use a `mode` or `type` variable with explicit values instead of boolean flags li
 
 **Why:** Boolean flags assume only 2 states. Adding a third mode requires renaming variables and refactoring all conditions.
 
+**Scope:** Only flag booleans that represent a MODE or TYPE likely to grow a third variant - state machines, processing modes, entity kinds. Do NOT flag simple one-off or leaf config booleans (`disabled`, `isLoading`, `showBorder`); those are genuinely binary and forcing them into an enum is over-engineering.
+
 ```typescript
 // ❌ Bad: Boolean flag locks you into 2 modes
 const isIOCMode = true;
@@ -204,6 +206,36 @@ function processData<T extends { id: string }>(data: T): T {
 
 ---
 
+### TYPE-2: Justify Type Escape Hatches
+
+When you use a type escape hatch (`@ts-ignore`, `as unknown`, `as unknown as T`, or a catch-all intersection like `& Record<string, unknown>`), ALWAYS add a comment explaining why it's necessary. Flag any escape hatch used without one.
+
+**Why:** These escapes silently bypass the type checker. Without a comment, the next reader can't tell whether the escape is a deliberate, understood trade-off or an accidental hole - and a later refactor can break the assumption it's papering over with no compile-time warning.
+
+```typescript
+// ❌ Bad: Escape hatch with no explanation
+const payload = response as unknown as UserPayload;
+
+// @ts-ignore
+legacyWidget.render(container);
+
+const config = rawInput as unknown; // Why is this needed?
+
+// ✅ Good: Narrow properly instead of escaping
+function isUserPayload(value: unknown): value is UserPayload {
+  return typeof value === "object" && value !== null && "id" in value;
+}
+const payload = isUserPayload(response) ? response : null;
+
+// ✅ Good: If the escape is genuinely unavoidable, explain why (see COMMENT-2)
+// The upstream @legacy/widget types are wrong: render() accepts an Element
+// but is typed as (id: string). Tracked in JIRA-4821.
+// @ts-ignore
+legacyWidget.render(container);
+```
+
+---
+
 ## Naming & Structure
 
 ### NAME-1: No Spelling Mistakes in Names or Comments
@@ -211,6 +243,8 @@ function processData<T extends { id: string }>(data: T): T {
 Variable names, function names, and comments must be spelled correctly.
 
 **Why:** Spelling mistakes cause confusion, make code harder to search, and look unprofessional. Typos in variable names can also cause bugs when someone searches for the correct spelling.
+
+**Scope:** NAME-1 is strictly about misspelled words. A name that is spelled correctly but misleading - it doesn't match what the value actually does - is not a NAME-1 issue; flag that under NAME-13 (Names Must Match Behavior).
 
 ```typescript
 // ❌ Bad: Spelling mistakes
@@ -625,6 +659,47 @@ function cancelOrder(id: string) {}
 
 ---
 
+### NAME-13: Names Must Match Behavior
+
+A parameter, prop, or variable name must describe what it actually controls or represents. Flag names that lie about their behavior. This is distinct from NAME-3/NAME-4 (generic/meaningless names) - here the name is specific, it's just wrong.
+
+**Why:** A name that contradicts behavior is worse than a vague one. Readers trust the name, skip reading the implementation, and build on a false assumption. The bug hides until someone finally traces the code.
+
+```typescript
+// ❌ Bad: Name says one thing, code does another
+// "disabled" actually enables the button
+function SaveButton({ disabled }: { disabled: boolean }) {
+  return <button disabled={!disabled}>Save</button>;
+}
+
+// "sortAscending" is passed straight into a descending sort
+function sortRows(rows: Row[], sortAscending: boolean) {
+  return rows.sort((first, second) => second.value - first.value);
+}
+
+// "maxRetries" is used as a delay in milliseconds
+function scheduleJob(maxRetries: number) {
+  setTimeout(runJob, maxRetries);
+}
+
+// ✅ Good: Name matches what it controls
+function SaveButton({ disabled }: { disabled: boolean }) {
+  return <button disabled={disabled}>Save</button>;
+}
+
+function sortRows(rows: Row[], sortAscending: boolean) {
+  return rows.sort((first, second) =>
+    sortAscending ? first.value - second.value : second.value - first.value
+  );
+}
+
+function scheduleJob(delayMs: number) {
+  setTimeout(runJob, delayMs);
+}
+```
+
+---
+
 ## Comments
 
 ### COMMENT-1: Comment the "Why", Not the "What"
@@ -727,6 +802,35 @@ setTimeout(() => {
 // and we need to mutate this for the legacy export function.
 // See: https://github.com/our-repo/issues/456
 const users = JSON.parse(JSON.stringify(originalUsers));
+```
+
+---
+
+### COMMENT-3: No Stale TODOs
+
+Flag TODO/FIXME comments that reference work that has already been completed, or a decision that has already been made. Delete them.
+
+**Why:** A stale TODO lies about the state of the code. It makes readers think work is still outstanding, adds noise when grepping for real action items, and erodes trust in every other TODO in the codebase.
+
+```typescript
+// ❌ Bad: TODO for a migration that already shipped
+// TODO: remove once the v2 API migration is done
+const users = normalizeV1Response(raw);
+
+// ❌ Bad: FIXME for a decision that's already been made
+// FIXME: decide whether to use debounce or throttle here
+const onSearch = useDebouncedCallback(runSearch, 300);
+
+// ❌ Bad: TODO pointing at a closed ticket
+// TODO(JIRA-1201): add pagination
+const { rows } = usePaginatedRows({ pageSize: 25 });
+
+// ✅ Good: Once the referenced work is done, the comment is gone
+const users = normalizeResponse(raw);
+
+const onSearch = useDebouncedCallback(runSearch, 300);
+
+const { rows } = usePaginatedRows({ pageSize: 25 });
 ```
 
 ---
@@ -917,6 +1021,48 @@ const tooltipProps = {
 
 ---
 
+### STYLE-5: Optional Booleans Need a Default
+
+Every optional boolean prop or parameter (`boolean?`) must have a default value. Flag any that don't.
+
+**Why:** An optional boolean has three states - `true`, `false`, and `undefined` - but the code almost always wants two. Without a default, every consumer has to reason about the `undefined` case, and `if (flag)` and `if (flag === false)` quietly disagree about it. A default collapses the tri-state back into a clear boolean.
+
+```typescript
+// ❌ Bad: Optional boolean with no default - three states to reason about
+interface ButtonProps {
+  children: ReactNode;
+  loading?: boolean;
+}
+
+function Button({ children, loading }: ButtonProps) {
+  // loading is boolean | undefined - what does "not passed" mean here?
+  return <button aria-busy={loading}>{children}</button>;
+}
+
+// ❌ Bad: Optional boolean parameter with no default
+function fetchUsers(includeInactive?: boolean) {
+  // includeInactive is undefined unless the caller passes it
+  return query({ inactive: includeInactive });
+}
+
+// ✅ Good: Default value collapses the tri-state
+interface ButtonProps {
+  children: ReactNode;
+  loading?: boolean;
+}
+
+function Button({ children, loading = false }: ButtonProps) {
+  return <button aria-busy={loading}>{children}</button>;
+}
+
+// ✅ Good: Default parameter value
+function fetchUsers(includeInactive = false) {
+  return query({ inactive: includeInactive });
+}
+```
+
+---
+
 ## React Components
 
 ### REACT-1: Use Composition Over Props for Behavior Changes
@@ -1035,6 +1181,8 @@ const SomeComponent = () => {
 Think hard before adding any prop to a component. Each prop should provide meaningful functionality that will be used across many places.
 
 **Why:** Components with too many one-off props become hard to use and maintain. But core/base components CAN have more props if each prop represents genuinely reusable functionality.
+
+**Scope:** REACT-3 is about whether a prop should exist at all - prop necessity and design. It is NOT about a component's runtime behavior. Controlled-vs-uncontrolled input correctness (a `value` prop with no `onChange`, mixing `defaultValue` with `value`) is a correctness bug, not a prop-design issue - flag it under Logic & Correctness (LOGIC), not REACT-3.
 
 **Before adding a prop, ask:**
 
@@ -1565,6 +1713,277 @@ function Badge({ tooltip, ...props }: BadgeProps) {
 ```
 
 **Apply consistently:** If you accept `string | object` in one component, do it in ALL components that use that prop type. Don't have Badge accept string but Button require object.
+
+---
+
+## Logic & Correctness
+
+### LOGIC-1: No Duplicate Conditional Branches
+
+Flag `if`/`else` (or `switch` cases) whose bodies are identical.
+
+**Why:** Identical branches mean one of two things: the condition is dead and should be removed, or an intended difference between branches was never written. Both are bugs waiting to be found - the reader assumes the branches differ because the code went to the trouble of branching.
+
+```typescript
+// ❌ Bad: Both branches do exactly the same thing
+if (user.isAdmin) {
+  return fetchAllRecords();
+} else {
+  return fetchAllRecords();
+}
+
+// ❌ Bad: Switch cases with identical bodies
+switch (status) {
+  case "pending":
+    return "In Progress";
+  case "processing":
+    return "In Progress";
+  case "done":
+    return "Complete";
+}
+
+// ✅ Good: Collapse when there's genuinely no distinction
+return fetchAllRecords();
+
+// ✅ Good: If a difference was intended, write it
+if (user.isAdmin) {
+  return fetchAllRecords();
+} else {
+  return fetchRecordsForUser(user.id);
+}
+
+// ✅ Good: Group cases that legitimately share a body
+switch (status) {
+  case "pending":
+  case "processing":
+    return "In Progress";
+  case "done":
+    return "Complete";
+  default:
+    throw new Error(`Unknown status: ${status}`);
+}
+```
+
+---
+
+### LOGIC-2: Handle Edge Cases in Guards
+
+Guard clauses must account for legitimate edge cases: an empty collection that is valid on first render, `null`/`undefined`, boundary values, and unhandled promise rejections. Flag guards that silently do the wrong thing at the edges.
+
+**Why:** A guard is supposed to protect against invalid states, but a too-broad guard disables valid ones. `if (arr.length === 0) return` looks defensive, but if an empty array is legitimate on first render it permanently short-circuits the fetch. Missing `await` and unhandled rejections fail silently in exactly the cases that matter.
+
+```typescript
+// ❌ Bad: Empty collection is legitimate on first render, but this
+// guard permanently disables the fetcher - it never runs when
+// selectedIds starts empty
+useEffect(() => {
+  if (selectedIds.length === 0) return;
+  fetchDetailsFor(selectedIds);
+}, [selectedIds]);
+
+// ❌ Bad: Unhandled null - crashes when user has no profile yet
+function getInitials(user: User) {
+  return user.profile.name.slice(0, 2);
+}
+
+// ❌ Bad: Missing await - the rejection is never caught, the error
+// handler never runs, and the caller thinks it succeeded
+async function saveDraft(draft: Draft) {
+  try {
+    persist(draft); // not awaited
+  } catch (error) {
+    reportError(error);
+  }
+}
+
+// ✅ Good: Only skip the fetch for states that are truly invalid
+useEffect(() => {
+  fetchDetailsFor(selectedIds); // empty is a valid query on first render
+}, [selectedIds]);
+
+// ✅ Good: Handle the null/undefined boundary
+function getInitials(user: User) {
+  const name = user.profile?.name ?? "";
+  return name.slice(0, 2);
+}
+
+// ✅ Good: Await so the rejection reaches the catch
+async function saveDraft(draft: Draft) {
+  try {
+    await persist(draft);
+  } catch (error) {
+    reportError(error);
+  }
+}
+```
+
+---
+
+## Performance & Scale
+
+### SCALE-1: Don't Filter Large Collections In Memory
+
+Flag `.filter()`, `.map()`, `.find()`, and similar in-memory operations over collections that can grow large. Push the filtering to the data source (server-side query, database `WHERE`, indexed lookup) and paginate.
+
+**Why:** In-memory scans cost time and memory linear in the size of the collection, and they require loading the entire collection first. This works fine in testing with a handful of rows and becomes a performance cliff in production once the data grows - long before anyone notices in review.
+
+```typescript
+// ❌ Bad: Load every user, then filter in memory
+const allUsers = await db.users.findMany();
+const activeUsers = allUsers.filter((user) => user.status === "active");
+
+// ❌ Bad: Fetch everything to find one record
+const orders = await fetchAllOrders();
+const order = orders.find((candidate) => candidate.id === orderId);
+
+// ✅ Good: Filter at the data source
+const activeUsers = await db.users.findMany({
+  where: { status: "active" },
+});
+
+// ✅ Good: Look up directly, and paginate lists
+const order = await db.orders.findUnique({ where: { id: orderId } });
+const firstPage = await db.orders.findMany({
+  where: { status: "open" },
+  take: 25,
+  skip: 0,
+});
+```
+
+---
+
+### SCALE-2: Paginate Unbounded Queries
+
+Flag hardcoded high limits (e.g. `limit: 10000`) and unbounded fetches that pull an entire table with no pagination or truncation handling.
+
+**Why:** A "big enough" limit is a bomb with a delayed fuse - it works until the data crosses the threshold, then silently drops rows or times out. Unbounded queries have the same problem with no ceiling at all. Real pagination scales with the data instead of guessing at a maximum.
+
+```typescript
+// ❌ Bad: Hardcoded high limit - silently truncates past 10,000
+const events = await db.events.findMany({ take: 10000 });
+
+// ❌ Bad: Unbounded fetch - grows without limit
+const allEvents = await db.events.findMany();
+render(allEvents);
+
+// ✅ Good: Page through results with a cursor
+async function fetchAllEvents() {
+  const events: Event[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const page = await db.events.findMany({
+      take: 100,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+    });
+    events.push(...page);
+    cursor = page.length === 100 ? page[page.length - 1].id : undefined;
+  } while (cursor);
+
+  return events;
+}
+
+// ✅ Good: Or paginate at the UI and only fetch what's shown
+const page = await db.events.findMany({ take: pageSize, skip: pageIndex * pageSize });
+```
+
+---
+
+## Debug Artifacts
+
+### DEBUG-1: No Stray Test Identifiers in Production
+
+Flag auto-generated or placeholder test identifiers - random `data-testid`/`@test-id` values, `test-`/`tmp-` prefixed ids, and similar scaffolding - left in production code paths.
+
+**Why:** Auto-generated test ids are noise in shipped code: they bloat the DOM, leak the fact that code was shipped mid-debugging, and read as random strings that the next developer can't tell are safe to remove. Intentional, stable test ids are fine; leftover generated ones are not.
+
+```typescript
+// ❌ Bad: Random test id left in from debugging
+<button data-testid="test-btn-8f2a1c">Submit</button>
+
+// ❌ Bad: Placeholder id that was never cleaned up
+<div id="tmp-debug-container">{children}</div>
+
+// ✅ Good: Remove it
+<button>Submit</button>
+
+// ✅ Good: Or, if a test hook is genuinely needed, use a stable,
+// intentional name that describes the element
+<button data-testid="checkout-submit">Submit</button>
+```
+
+---
+
+### DEBUG-2: No Leftover Console Logging
+
+Flag stray `console.log`/`console.debug` calls in shipped code.
+
+**Why:** Debug logging left in production clutters the console, can leak sensitive data into logs, and hurts performance in hot paths. Use the project's real logger for intentional logging and remove the throwaway `console.log`s.
+
+```typescript
+// ❌ Bad: Debug logging left in
+function checkout(cart: Cart) {
+  console.log("cart", cart);
+  const total = calculateTotal(cart);
+  console.debug("total is", total);
+  return submitOrder(cart, total);
+}
+
+// ✅ Good: Debug logs removed
+function checkout(cart: Cart) {
+  const total = calculateTotal(cart);
+  return submitOrder(cart, total);
+}
+
+// ✅ Good: If logging is genuinely needed, use the real logger
+function checkout(cart: Cart) {
+  const total = calculateTotal(cart);
+  logger.info("checkout.submitted", { cartId: cart.id, total });
+  return submitOrder(cart, total);
+}
+```
+
+---
+
+## Security
+
+### SEC-1: Enforce Object-Level Authorization
+
+Never trust a client-supplied owner, tenant, or resource identifier to decide what data to return. Verify server-side that the authenticated caller is actually authorized for the requested resource. Flag any handler that reads an id from the request and queries by it without an ownership check.
+
+**Why:** Trusting a client-supplied id lets an attacker swap in someone else's id and read or modify data that isn't theirs (an IDOR / cross-tenant access bug). The identity to trust is the authenticated session, not a value in the request body or query string.
+
+```typescript
+// ❌ Bad: Trusts the tenantId sent by the client
+async function getInvoices(req: Request) {
+  const { tenantId } = req.query; // attacker can send any tenantId
+  return db.invoices.findMany({ where: { tenantId } });
+}
+
+// ❌ Bad: Fetches by id with no ownership check
+async function getDocument(req: Request) {
+  const { documentId } = req.params;
+  return db.documents.findUnique({ where: { id: documentId } });
+  // Any authenticated user can read any document by guessing ids
+}
+
+// ✅ Good: Derive the tenant from the authenticated session, not the request
+async function getInvoices(req: AuthedRequest) {
+  const tenantId = req.session.tenantId; // trusted, set at auth time
+  return db.invoices.findMany({ where: { tenantId } });
+}
+
+// ✅ Good: Verify the caller owns the resource before returning it
+async function getDocument(req: AuthedRequest) {
+  const { documentId } = req.params;
+  const document = await db.documents.findUnique({ where: { id: documentId } });
+
+  if (!document || document.ownerUserId !== req.session.userId) {
+    throw new ForbiddenError("Not authorized for this document");
+  }
+  return document;
+}
+```
 
 ---
 

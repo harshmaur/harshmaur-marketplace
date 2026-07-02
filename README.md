@@ -8,7 +8,7 @@ A Claude skill that reviews TypeScript code against my personal coding standards
 
 Code should be written to gracefully handle future requirements, with names that communicate clearly and components that compose elegantly.
 
-## Rules Included (35 Rules)
+## Rules Included (46 Rules)
 
 ### Extensibility & Future-Proofing
 
@@ -21,9 +21,10 @@ Code should be written to gracefully handle future requirements, with names that
 
 ### Type Safety
 
-| ID     | Rule     | Summary                                  |
-| ------ | -------- | ---------------------------------------- |
-| TYPE-1 | No `any` | Use proper types, `unknown`, or generics |
+| ID     | Rule                        | Summary                                                              |
+| ------ | --------------------------- | -------------------------------------------------------------------- |
+| TYPE-1 | No `any`                    | Use proper types, `unknown`, or generics                             |
+| TYPE-2 | Justify Type Escape Hatches | Comment why `@ts-ignore`/`as unknown`/catch-all casts are necessary  |
 
 ### Naming & Structure
 
@@ -41,6 +42,7 @@ Code should be written to gracefully handle future requirements, with names that
 | NAME-10 | No Hungarian Notation      | No `isVictory`, `strName`, `numCount` - let types do the work                           |
 | NAME-11 | Use Domain Words           | `calendar` not `appointmentList`, `employee` not `companyPerson`                        |
 | NAME-12 | Consistent Domain Language | Same concept = same terminology throughout codebase                                     |
+| NAME-13 | Names Must Match Behavior  | A name must describe what it actually controls; flag names that lie                     |
 
 ### Comments
 
@@ -48,6 +50,7 @@ Code should be written to gracefully handle future requirements, with names that
 | --------- | ------------------------- | -------------------------------------------------------- |
 | COMMENT-1 | Comment "Why", Not "What" | Only explain reasoning, not what the code does           |
 | COMMENT-2 | Document Anti-Patterns    | Always explain workarounds and intentional anti-patterns |
+| COMMENT-3 | No Stale TODOs            | Delete TODO/FIXME comments for work already done or decided |
 
 ### Code Style
 
@@ -57,6 +60,7 @@ Code should be written to gracefully handle future requirements, with names that
 | STYLE-2 | No Unused Code                | Don't add code for future features; add when actually needed     |
 | STYLE-3 | Delete Unnecessary Type Aliases | If `type A = B` adds nothing, just use `B` directly            |
 | STYLE-4 | Prefer Spread Operators       | `{...tooltip}` not manual property listing                       |
+| STYLE-5 | Optional Booleans Need a Default | Give every `boolean?` prop/param a default to avoid the tri-state |
 
 ### React Components
 
@@ -79,6 +83,33 @@ Code should be written to gracefully handle future requirements, with names that
 | ID      | Rule                       | Summary                                                            |
 | ------- | -------------------------- | ------------------------------------------------------------------ |
 | STRUCT-1| Types Folder Contains Only Types | No runtime functions in `types/` folder; only type definitions |
+
+### Logic & Correctness
+
+| ID      | Rule                          | Summary                                                            |
+| ------- | ----------------------------- | ------------------------------------------------------------------ |
+| LOGIC-1 | No Duplicate Conditional Branches | Collapse or fix `if`/`else`/`switch` branches with identical bodies |
+| LOGIC-2 | Handle Edge Cases in Guards   | Empty collections, null, boundaries, missing `await` in guards     |
+
+### Performance & Scale
+
+| ID      | Rule                          | Summary                                                            |
+| ------- | ----------------------------- | ------------------------------------------------------------------ |
+| SCALE-1 | Don't Filter Large Collections In Memory | Push `filter`/`map`/`find` to the data source and paginate |
+| SCALE-2 | Paginate Unbounded Queries    | No hardcoded high limits or unbounded fetches; paginate            |
+
+### Debug Artifacts
+
+| ID      | Rule                          | Summary                                                            |
+| ------- | ----------------------------- | ------------------------------------------------------------------ |
+| DEBUG-1 | No Stray Test Identifiers     | Remove auto-generated/placeholder test ids from production paths   |
+| DEBUG-2 | No Leftover Console Logging   | No stray `console.log`/`console.debug` in shipped code             |
+
+### Security
+
+| ID      | Rule                          | Summary                                                            |
+| ------- | ----------------------------- | ------------------------------------------------------------------ |
+| SEC-1   | Enforce Object-Level Authorization | Verify caller owns the resource server-side; don't trust client IDs |
 
 ## Installation
 
