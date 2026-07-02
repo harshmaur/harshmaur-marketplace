@@ -1577,3 +1577,118 @@ To add a new rule:
 3. Include: rule name, rationale ("Why"), bad example, good example
 4. Update `README.md` with the new rule in the appropriate table
 5. Increment minor version in `.claude-plugin/plugin.json` and in `.claude-plugin/marketplace.json` (if not already done in this session)
+
+
+### STRUCT-2: Remove unused code
+Flag files, exports, props, or constants that are no longer imported or referenced anywhere.
+
+**Why:** dead code silently accumulates, misleads readers into thinking it's load-bearing, and makes refactors riskier than they need to be.
+
+```typescript
+// bad — exported but never imported elsewhere
+export const LEGACY_RETRY_LIMIT = 3;
+
+export function formatLegacyDate(d: Date) {
+  return d.toISOString();
+}
+
+// good — remove it, or ask "is this still used?" before keeping it
+```
+
+### STRUCT-3: No duplicate if/else branches
+Flag `if`/`else` (or `switch`) branches whose bodies are identical.
+
+**Why:** identical branches usually mean either dead conditional logic that can be collapsed, or a bug where the intended difference between branches was never implemented.
+
+```typescript
+// bad — both branches do the same thing
+if (user.isAdmin) {
+  return fetchAllRecords();
+} else {
+  return fetchAllRecords();
+}
+
+// good — collapse if there's no real distinction
+return fetchAllRecords();
+```
+
+### TYPE-2: Justify type-hack escapes
+Flag `@ts-ignore`, `as unknown`, `as Record<string, unknown>`, or broad intersections like `& { x?: unknown }` used without a comment explaining why the escape is needed.
+
+**Why:** these bypass the type checker silently; a later refactor can break the assumption they're papering over with no compile-time warning.
+
+```typescript
+// bad — no explanation for the escape hatch
+const payload = response as unknown as UserPayload;
+
+// good — narrow properly, or justify the escape inline
+function isUserPayload(x: unknown): x is UserPayload {
+  return typeof x === 'object' && x !== null && 'id' in x;
+}
+const payload = isUserPayload(response) ? response : null;
+```
+
+### COMMENT-3: Remove stale TODOs
+Flag TODO/FIXME comments that reference work already completed or superseded by later discussion.
+
+**Why:** stale TODOs mislead readers into thinking work is outstanding and add noise when searching the codebase for real action items.
+
+```typescript
+// bad — the migration this refers to already shipped
+// TODO: remove once the v2 API migration is done
+const data = normalizeV1Response(raw);
+
+// good — delete the TODO once the referenced work is actually done
+const data = normalizeV1Response(raw);
+```
+
+### REACT-12: Check for an existing shared component first
+Flag a newly authored component that duplicates functionality already provided by an existing shared/UI component in the codebase.
+
+**Why:** reinventing an existing component fragments styling and behavior across the app and doubles the maintenance surface for the same concern.
+
+```typescript
+// bad — hand-rolled modal when a shared <Modal> already exists
+function ConfirmDialog({ onClose }: Props) {
+  return (
+    <div className="fixed inset-0 flex items-center justify-center">
+      <div className="bg-white p-4 rounded">...</div>
+    </div>
+  );
+}
+
+// good — reuse the shared component
+import { Modal } from '@/components/shared/Modal';
+
+function ConfirmDialog({ onClose }: Props) {
+  return <Modal onClose={onClose}>...</Modal>;
+}
+```
+
+## Performance
+
+### PERF-1: Avoid in-memory filtering on large collections
+Flag `.filter()`/`.map()`/`.find()` chains run in-memory over collections that are known or expected to be large; push the filter down to the data source (server-side query, DB filter, pagination) instead.
+
+**Why:** in-memory scans over large datasets scale linearly with data growth and turn into a performance cliff well before it's visible in normal testing.
+
+```typescript
+// bad — pulls the full table into memory to filter client-side
+const activeUsers = allUsers.filter(u => u.status === 'active');
+
+// good — filter at the query layer
+const activeUsers = await db.users.findMany({ where: { status: 'active' } });
+```
+
+### STYLE-5: No stray test IDs in production code
+Flag `@test-id`, `data-testid` values that look auto-generated/random, or other test-only identifiers left in production code paths.
+
+**Why:** leftover test scaffolding bloats the DOM/bundle and signals code shipped mid-debugging without cleanup.
+
+```typescript
+// bad — random test id left in from debugging
+<button data-testid="test-btn-8f2a1">Submit</button>
+
+// good — remove it, or use a stable, intentional test id if actually needed
+<button>Submit</button>
+```
