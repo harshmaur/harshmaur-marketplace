@@ -236,6 +236,42 @@ legacyWidget.render(container);
 
 ---
 
+### TYPE-3: Don't Re-Check Types TypeScript Already Guarantees
+
+Never add a runtime `typeof`/`instanceof` check for a value whose type is already narrowed or guaranteed by its TypeScript type.
+
+**Why:** A runtime check for something the type system already promises is dead code - the "impossible" branch can never execute, so it just adds noise and a false sense of defensiveness. If the value can genuinely differ at runtime (an untyped API response, a `JSON.parse` result), the fix is to make the type honest (`string | undefined`, `unknown`), not to bolt a check onto an already-correct type.
+
+```typescript
+// ❌ Bad: label is already typed as string - this branch can never run
+interface CardProps {
+  label: string;
+}
+function Card({ label }: CardProps) {
+  if (typeof label !== "string") return null;
+  return <span>{label}</span>;
+}
+
+// ❌ Bad: rows is already typed as Row[] - the Array.isArray check is dead code
+function renderRows(rows: Row[]) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(renderRow);
+}
+
+// ✅ Good: trust the type, use the value directly
+function Card({ label }: CardProps) {
+  return <span>{label}</span>;
+}
+
+// ✅ Good: if the value can genuinely be untyped at runtime, say so in the type
+function renderRows(rows: unknown) {
+  if (!Array.isArray(rows)) return [];
+  return rows.map(renderRow);
+}
+```
+
+---
+
 ## Naming & Structure
 
 ### NAME-1: No Spelling Mistakes in Names or Comments
@@ -1063,6 +1099,42 @@ function fetchUsers(includeInactive = false) {
 
 ---
 
+### STYLE-6: Justify New Conditions, Wrappers, and Abstractions
+
+Before adding a new conditional branch, custom hook, wrapper prop, or middleware, confirm there's a concrete, current need that an existing primitive doesn't already solve.
+
+**Why:** Every added branch, wrapper, or layer of indirection is a permanent cost - the next reader has to understand it, and the next change has to route around it. "It might be useful" or "it's more flexible" isn't a reason if nothing today exercises the flexibility; call the existing primitive directly, and add the wrapper when a second real use case actually needs it.
+
+```typescript
+// ❌ Bad: custom wrapper hook around a framework primitive, no added behavior
+function useCanAccess(resource: string, action: string) {
+  const { can } = useContext(AccessContext);
+  return can(resource, action);
+}
+// ...
+if (useCanAccess("rules", "delete")) {
+  /* ... */
+}
+
+// ❌ Bad: a defensive condition for a case the type already rules out
+function formatCount(count: number) {
+  if (count === undefined) return "0"; // count is typed as number, never undefined
+  return count.toString();
+}
+
+// ✅ Good: call the existing primitive directly until a real second use case appears
+if (canAccess("rules", "delete")) {
+  /* ... */
+}
+
+// ✅ Good: no defensive branch for a case the type already rules out
+function formatCount(count: number) {
+  return count.toString();
+}
+```
+
+---
+
 ## React Components
 
 ### REACT-1: Use Composition Over Props for Behavior Changes
@@ -1819,6 +1891,102 @@ async function saveDraft(draft: Draft) {
 
 ---
 
+### LOGIC-3: Conditions and Messages Must Match Their Actual Case
+
+A permission check, action handler, or status message must reference the case it's actually guarding - not a copy-pasted neighbor's.
+
+**Why:** Copy-pasting a similar condition, permission check, or UI message and forgetting to update which action or state it refers to produces code that compiles, runs, and reads as intentional. The bug only surfaces when someone traces the referenced constant back to what it actually means - by then it may already be in production.
+
+```typescript
+// ❌ Bad: delete is gated on the edit permission, not delete
+function canDelete(user: User, resource: Resource) {
+  return user.permissions.includes("edit"); // copied from canEdit, never updated
+}
+
+// ❌ Bad: dispatches a delete action but checks the edit permission first
+function handleDeleteRule(rule: Rule, user: User) {
+  if (!user.permissions.includes("edit")) return;
+  dispatch(deleteRule(rule.id));
+}
+
+// ❌ Bad: the error branch shows the empty-state copy
+if (isError) {
+  return <EmptyState message="No Data Found" />; // copied from the empty branch
+}
+
+// ✅ Good: each branch checks and shows what it actually means
+function canDelete(user: User, resource: Resource) {
+  return user.permissions.includes("delete");
+}
+
+function handleDeleteRule(rule: Rule, user: User) {
+  if (!user.permissions.includes("delete")) return;
+  dispatch(deleteRule(rule.id));
+}
+
+if (isError) {
+  return <ErrorState message="Something went wrong. Please try again." />;
+}
+```
+
+---
+
+### LOGIC-4: Keep Controlled Inputs and Effects Honest About Their Inputs
+
+Controlled inputs must always pair a `value` with an `onChange`, and effects must react to every prop/state value they read - don't guard away a dependency that's legitimately present, and don't leave a loading flag stale across a refetch.
+
+**Why:** These are the same class of bug wearing different clothes: the component or effect claims to track a piece of state, but a missing handler, a missing dependency, or a leftover flag means it silently doesn't. The UI looks right in the common case and only breaks for the input, navigation, or refetch pattern nobody tested.
+
+```typescript
+// ❌ Bad: value with no onChange - input renders but user input is ignored
+<input value={draft.title} />
+
+// ❌ Bad: mixing defaultValue and value fights React for control of the field
+<input defaultValue={draft.title} value={draft.title} onChange={onChange} />
+
+// ❌ Bad: effect reads location.state but doesn't depend on it - stale on
+// back/forward navigation
+useEffect(() => {
+  setFormValues(location.state?.draft ?? initialValues);
+}, []);
+
+// ❌ Bad: loading flag never resets, so a second fetch shows stale "done" state
+function useResults(query: string) {
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetchResults(query).then((data) => {
+      setResults(data);
+      setLoading(false);
+    });
+  }, [query]); // loading is never set back to true when query changes
+}
+
+// ✅ Good: controlled input has both value and onChange
+<input
+  value={draft.title}
+  onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+/>
+
+// ✅ Good: effect depends on everything it reads
+useEffect(() => {
+  setFormValues(location.state?.draft ?? initialValues);
+}, [location.state]);
+
+// ✅ Good: loading flag is reset at the start of every fetch
+function useResults(query: string) {
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    fetchResults(query).then((data) => {
+      setResults(data);
+      setLoading(false);
+    });
+  }, [query]);
+}
+```
+
+---
+
 ## Performance & Scale
 
 ### SCALE-1: Don't Filter Large Collections In Memory
@@ -1953,6 +2121,8 @@ Never trust a client-supplied owner, tenant, or resource identifier to decide wh
 
 **Why:** Trusting a client-supplied id lets an attacker swap in someone else's id and read or modify data that isn't theirs (an IDOR / cross-tenant access bug). The identity to trust is the authenticated session, not a value in the request body or query string.
 
+**Scope:** This applies just as much when a resource is scoped by more than one key (e.g. partner + soc, tenant + workspace). Filtering by only one of the client-supplied keys and skipping the others is still a bypass - verify every scoping key the resource requires, not just the first one checked.
+
 ```typescript
 // ❌ Bad: Trusts the tenantId sent by the client
 async function getInvoices(req: Request) {
@@ -1982,6 +2152,24 @@ async function getDocument(req: AuthedRequest) {
     throw new ForbiddenError("Not authorized for this document");
   }
   return document;
+}
+
+// ❌ Bad: filters by partnerId but never verifies it belongs to the caller's soc
+async function getPartnerAlerts(req: AuthedRequest) {
+  const { partnerId } = req.query; // client-supplied, not verified against the soc
+  return db.alerts.findMany({ where: { partnerId } });
+  // A user from one soc can pass another soc's partnerId and see its alerts
+}
+
+// ✅ Good: verify the partner belongs to the caller's soc before filtering by it
+async function getPartnerAlerts(req: AuthedRequest) {
+  const { partnerId } = req.query;
+  const partner = await db.partners.findUnique({ where: { id: partnerId } });
+
+  if (!partner || partner.socId !== req.session.socId) {
+    throw new ForbiddenError("Not authorized for this partner");
+  }
+  return db.alerts.findMany({ where: { partnerId } });
 }
 ```
 

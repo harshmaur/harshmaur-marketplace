@@ -8,7 +8,7 @@ A Claude skill that reviews TypeScript code against my personal coding standards
 
 Code should be written to gracefully handle future requirements, with names that communicate clearly and components that compose elegantly.
 
-## Rules Included (46 Rules)
+## Rules Included (50 Rules)
 
 ### Extensibility & Future-Proofing
 
@@ -25,6 +25,7 @@ Code should be written to gracefully handle future requirements, with names that
 | ------ | --------------------------- | -------------------------------------------------------------------- |
 | TYPE-1 | No `any`                    | Use proper types, `unknown`, or generics                             |
 | TYPE-2 | Justify Type Escape Hatches | Comment why `@ts-ignore`/`as unknown`/catch-all casts are necessary  |
+| TYPE-3 | No Redundant Type Checks    | Don't `typeof`/`instanceof` check a value TypeScript already guarantees |
 
 ### Naming & Structure
 
@@ -61,6 +62,7 @@ Code should be written to gracefully handle future requirements, with names that
 | STYLE-3 | Delete Unnecessary Type Aliases | If `type A = B` adds nothing, just use `B` directly            |
 | STYLE-4 | Prefer Spread Operators       | `{...tooltip}` not manual property listing                       |
 | STYLE-5 | Optional Booleans Need a Default | Give every `boolean?` prop/param a default to avoid the tri-state |
+| STYLE-6 | Justify New Abstractions      | Confirm a concrete need before adding a condition, wrapper, hook, or middleware |
 
 ### React Components
 
@@ -90,6 +92,8 @@ Code should be written to gracefully handle future requirements, with names that
 | ------- | ----------------------------- | ------------------------------------------------------------------ |
 | LOGIC-1 | No Duplicate Conditional Branches | Collapse or fix `if`/`else`/`switch` branches with identical bodies |
 | LOGIC-2 | Handle Edge Cases in Guards   | Empty collections, null, boundaries, missing `await` in guards     |
+| LOGIC-3 | Conditions Must Match Their Case | Permission checks and status messages must reference the actual case, not a copy-pasted neighbor |
+| LOGIC-4 | Controlled Inputs & Effects Must Be Honest | Pair `value` with `onChange`, depend on everything an effect reads, reset loading flags before refetch |
 
 ### Performance & Scale
 
@@ -109,7 +113,7 @@ Code should be written to gracefully handle future requirements, with names that
 
 | ID      | Rule                          | Summary                                                            |
 | ------- | ----------------------------- | ------------------------------------------------------------------ |
-| SEC-1   | Enforce Object-Level Authorization | Verify caller owns the resource server-side; don't trust client IDs |
+| SEC-1   | Enforce Object-Level Authorization | Verify caller owns the resource server-side; don't trust client IDs. Applies to every scoping key when a resource has more than one (e.g. partner + soc) |
 
 ## Installation
 
