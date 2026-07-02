@@ -38,12 +38,16 @@ Review TypeScript code against Harsh Maur's coding rules in `references/rules.md
 **For EACH file, systematically check ALL rule categories:**
 
 1. **Extensibility (EXT-1 to EXT-4):** Boolean flags? Implicit fallbacks? Separate functions per variant?
-2. **Type Safety (TYPE-1):** Any `any` types?
-3. **Naming (NAME-1 to NAME-12):** Spelling? Abbreviation casing? Meaningless names? Abstract names? Single letters?
-4. **Comments (COMMENT-1 to COMMENT-2):** "What" comments? Redundant JSDoc that repeats types? Undocumented anti-patterns?
-5. **Code Style (STYLE-1 to STYLE-4):** Implicit type coercion (`!!`, `+str`)? Unused code? Unnecessary type aliases? Manual prop forwarding instead of spread?
-6. **React (REACT-1 to REACT-8):** Composition vs props? Enum props? Hook encapsulation? Display-ready values? Flexible input types?
+2. **Type Safety (TYPE-1 to TYPE-2):** Any `any` types? Unjustified escape hatches (`@ts-ignore`, `as unknown`)?
+3. **Naming (NAME-1 to NAME-13):** Spelling? Abbreviation casing? Meaningless names? Abstract names? Single letters? Names that don't match behavior?
+4. **Comments (COMMENT-1 to COMMENT-3):** "What" comments? Redundant JSDoc that repeats types? Undocumented anti-patterns? Stale TODOs?
+5. **Code Style (STYLE-1 to STYLE-5):** Implicit type coercion (`!!`, `+str`)? Unused code? Unnecessary type aliases? Manual prop forwarding instead of spread? Optional booleans without a default?
+6. **React (REACT-1 to REACT-11):** Composition vs props? Enum props? Hook encapsulation? Display-ready values? Flexible input types?
 7. **Structure (STRUCT-1):** Functions in types folder?
+8. **Logic (LOGIC-1 to LOGIC-2):** Duplicate if/else or switch branches? Unhandled edge cases in guards (empty collections, null, missing `await`)?
+9. **Performance & Scale (SCALE-1 to SCALE-2):** In-memory filtering of large collections? Unbounded or hardcoded-high-limit queries?
+10. **Debug Artifacts (DEBUG-1 to DEBUG-2):** Stray test identifiers in production? Leftover `console.log`/`console.debug`?
+11. **Security (SEC-1):** Client-supplied owner/tenant IDs trusted without a server-side authorization check?
 
 **Do NOT skip categories.** If a category doesn't apply to a file (e.g., no React in a utility file), explicitly note "N/A" for that category.
 
@@ -90,22 +94,27 @@ Always end with this copy-paste friendly summary:
 
 ### Coverage Verification
 
-| File | EXT | TYPE | NAME | COMMENT | STYLE | REACT | STRUCT |
-|------|-----|------|------|---------|-------|-------|--------|
-| `useBulkDeploy.ts` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A |
-| `DeployTable.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A |
-| `types/bulk-deploy.ts` | N/A | ✓ | ✓ | N/A | N/A | N/A | ✓ |
+| File | EXT | TYPE | NAME | COMMENT | STYLE | REACT | STRUCT | LOGIC | SCALE | DEBUG | SEC |
+|------|-----|------|------|---------|-------|-------|--------|-------|-------|-------|-----|
+| `useBulkDeploy.ts` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | ✓ | ✓ | ✓ |
+| `DeployTable.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | N/A | ✓ | N/A |
+| `types/bulk-deploy.ts` | N/A | ✓ | ✓ | N/A | N/A | N/A | ✓ | N/A | N/A | N/A | N/A |
 
 ### Results by Category
 
 | Category | Status | Issues |
 |----------|--------|--------|
 | Extensibility | :white_check_mark: Pass | 0 |
+| Type Safety | :white_check_mark: Pass | 0 |
 | Naming | :x: Fail | 2 |
 | Comments | :white_check_mark: Pass | 0 |
 | Code Style | :white_check_mark: Pass | 0 |
 | React Components | :x: Fail | 1 |
 | Project Structure | :white_check_mark: Pass | 0 |
+| Logic & Correctness | :white_check_mark: Pass | 0 |
+| Performance & Scale | :white_check_mark: Pass | 0 |
+| Debug Artifacts | :white_check_mark: Pass | 0 |
+| Security | :white_check_mark: Pass | 0 |
 
 ### Issues Found (3)
 
@@ -137,21 +146,26 @@ When all checks pass:
 
 ### Coverage Verification
 
-| File | EXT | TYPE | NAME | COMMENT | STYLE | REACT | STRUCT |
-|------|-----|------|------|---------|-------|-------|--------|
-| `file1.ts` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A |
-| `file2.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A |
+| File | EXT | TYPE | NAME | COMMENT | STYLE | REACT | STRUCT | LOGIC | SCALE | DEBUG | SEC |
+|------|-----|------|------|---------|-------|-------|--------|-------|-------|-------|-----|
+| `file1.ts` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | ✓ | ✓ | ✓ |
+| `file2.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | N/A | ✓ | N/A |
 
 ### Results by Category
 
 | Category | Status | Issues |
 |----------|--------|--------|
 | Extensibility | :white_check_mark: Pass | 0 |
+| Type Safety | :white_check_mark: Pass | 0 |
 | Naming | :white_check_mark: Pass | 0 |
 | Comments | :white_check_mark: Pass | 0 |
 | Code Style | :white_check_mark: Pass | 0 |
 | React Components | :white_check_mark: Pass | 0 |
 | Project Structure | :white_check_mark: Pass | 0 |
+| Logic & Correctness | :white_check_mark: Pass | 0 |
+| Performance & Scale | :white_check_mark: Pass | 0 |
+| Debug Artifacts | :white_check_mark: Pass | 0 |
+| Security | :white_check_mark: Pass | 0 |
 
 ### What's Good
 
