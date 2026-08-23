@@ -8,7 +8,7 @@ A Claude skill that reviews TypeScript code against my personal coding standards
 
 Code should be written to gracefully handle future requirements, with names that communicate clearly and components that compose elegantly.
 
-## Rules Included (50 Rules)
+## Rules Included (56 Rules)
 
 ### Extensibility & Future-Proofing
 
@@ -62,7 +62,9 @@ Code should be written to gracefully handle future requirements, with names that
 | STYLE-3 | Delete Unnecessary Type Aliases | If `type A = B` adds nothing, just use `B` directly            |
 | STYLE-4 | Prefer Spread Operators       | `{...tooltip}` not manual property listing                       |
 | STYLE-5 | Optional Booleans Need a Default | Give every `boolean?` prop/param a default to avoid the tri-state |
-| STYLE-6 | Justify New Abstractions      | Confirm a concrete need before adding a condition, wrapper, hook, or middleware |
+| STYLE-6 | Justify New Abstractions      | Confirm a concrete need before adding a condition, wrapper, hook, or middleware (see STYLE-7 for the opposite case) |
+| STYLE-7 | Extract Duplicated Logic      | Same conditional/cast/class-string copy-pasted at 2+ call sites? Extract it |
+| STYLE-8 | Prefer Existing Utilities     | Check for a built-in, library, or shared component before hand-rolling logic |
 
 ### React Components
 
@@ -91,16 +93,24 @@ Code should be written to gracefully handle future requirements, with names that
 | ID      | Rule                          | Summary                                                            |
 | ------- | ----------------------------- | ------------------------------------------------------------------ |
 | LOGIC-1 | No Duplicate Conditional Branches | Collapse or fix `if`/`else`/`switch` branches with identical bodies |
-| LOGIC-2 | Handle Edge Cases in Guards   | Empty collections, null, boundaries, missing `await` in guards     |
-| LOGIC-3 | Conditions Must Match Their Case | Permission checks and status messages must reference the actual case, not a copy-pasted neighbor |
+| LOGIC-2 | Handle Edge Cases in Guards   | Empty collections, null, boundaries, missing `await` in guards. Not deployment-config NaN checks with no untrusted-input path |
+| LOGIC-3 | Conditions Must Match Their Case | Permission checks and status messages must reference the actual case, not a copy-pasted neighbor. Not a broader permission legitimately subsuming a narrower one |
 | LOGIC-4 | Controlled Inputs & Effects Must Be Honest | Pair `value` with `onChange`, depend on everything an effect reads, reset loading flags before refetch |
+| LOGIC-5 | Don't Silently Drop Behavior in a Refactor | Removed props/params/eslint-disables/CSS classes/persisted state need an intentional replacement |
+
+### Error Handling
+
+| ID    | Rule                          | Summary                                                            |
+| ----- | ----------------------------- | ------------------------------------------------------------------ |
+| ERR-1 | Errors Must Reach the User or Preserve Their Origin | No silent catch swallowing user-facing failures; no rethrow that drops the original error or goes unhandled |
 
 ### Performance & Scale
 
 | ID      | Rule                          | Summary                                                            |
 | ------- | ----------------------------- | ------------------------------------------------------------------ |
 | SCALE-1 | Don't Filter Large Collections In Memory | Push `filter`/`map`/`find` to the data source and paginate |
-| SCALE-2 | Paginate Unbounded Queries    | No hardcoded high limits or unbounded fetches; paginate            |
+| SCALE-2 | Paginate Unbounded Queries    | No hardcoded high limits or unbounded fetches; paginate. Needs concrete amplification evidence, not a bare limit |
+| SCALE-3 | Isolate & Parallelize Per-Item Async Work | Guard independent per-item loops against one failure aborting the rest; run independent fetches concurrently |
 
 ### Debug Artifacts
 
@@ -113,7 +123,13 @@ Code should be written to gracefully handle future requirements, with names that
 
 | ID      | Rule                          | Summary                                                            |
 | ------- | ----------------------------- | ------------------------------------------------------------------ |
-| SEC-1   | Enforce Object-Level Authorization | Verify caller owns the resource server-side; don't trust client IDs. Applies to every scoping key when a resource has more than one (e.g. partner + soc) |
+| SEC-1   | Enforce Object-Level Authorization | Verify caller owns the resource server-side; don't trust client IDs. Applies to every scoping key, cache keys, and secret/config names; auth checks with optional chaining must fail closed; check the service layer first |
+
+### Test Coverage
+
+| ID         | Rule                       | Summary                                                            |
+| ---------- | -------------------------- | ------------------------------------------------------------------ |
+| TEST-GAP-1 | Cover Non-Trivial Functions & Boundaries | Geometry/date-range/classification/parsing/polling logic needs boundary tests; a test must exercise the case its name promises |
 
 ## Installation
 

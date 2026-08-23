@@ -1105,6 +1105,8 @@ Before adding a new conditional branch, custom hook, wrapper prop, or middleware
 
 **Why:** Every added branch, wrapper, or layer of indirection is a permanent cost - the next reader has to understand it, and the next change has to route around it. "It might be useful" or "it's more flexible" isn't a reason if nothing today exercises the flexibility; call the existing primitive directly, and add the wrapper when a second real use case actually needs it.
 
+**Scope:** STYLE-6 is about resisting abstraction nobody needs yet. If the same logic has already been copy-pasted to a second call site, that's the opposite problem - see STYLE-7 (Extract Logic Duplicated Across Call Sites).
+
 ```typescript
 // ❌ Bad: custom wrapper hook around a framework primitive, no added behavior
 function useCanAccess(resource: string, action: string) {
@@ -1132,6 +1134,85 @@ function formatCount(count: number) {
   return count.toString();
 }
 ```
+
+---
+
+### STYLE-7: Extract Logic Duplicated Across Call Sites
+
+When the same non-trivial logic - a conditional, a type-cast plus its narrowing check, a class-name string, a `data-testid` computation, a recursive traversal - appears verbatim in two or more places, extract it into a shared function, hook, or constant instead of leaving the copies to drift.
+
+**Why:** Copy-pasted logic doubles (or triples) the surface area a bug fix has to cover, and duplicated `as X` casts or narrowing checks are exactly the kind of code a later refactor updates in one place and forgets in the other. This is the mirror image of STYLE-6 (over-engineering a wrapper nobody needs yet): STYLE-6 stops you from abstracting speculatively, STYLE-7 catches logic that's already been copy-pasted and needs consolidating now that a second instance proves the need.
+
+```typescript
+// ❌ Bad: the same cast + narrowing check copy-pasted at two call sites
+function renderIOCRow(item: TreeItem) {
+  const children = (item as IOCGroup).children as IOCItem[];
+  return children.map(renderIOCItem);
+}
+
+function renderRuleRow(item: TreeItem) {
+  const children = (item as RuleGroup).children as RuleItem[];
+  return children.map(renderRuleItem);
+}
+
+// ❌ Bad: the same org-filter predicate duplicated across sibling views
+// TemplateView.tsx
+const filtered = rows.filter((row) => row.organizationId === activeOrgId);
+// SummaryCard.tsx - identical predicate, copy-pasted
+const visible = cards.filter((card) => card.organizationId === activeOrgId);
+
+// ✅ Good: extract once, reuse everywhere
+function getTreeItemChildren<T>(item: TreeItem): T[] {
+  return (item as { children: T[] }).children;
+}
+
+function filterByOrganization<T extends { organizationId: string }>(
+  rows: T[],
+  organizationId: string
+) {
+  return rows.filter((row) => row.organizationId === organizationId);
+}
+```
+
+---
+
+### STYLE-8: Prefer an Existing Utility or Component Over Hand-Rolled Logic
+
+Before writing a manual loop, string manipulation, debounce, or UI primitive, check whether a language built-in, an already-used library, or an existing shared component/hook already does it.
+
+**Why:** Hand-rolled reimplementations of things that already exist cost more to write, are more likely to have edge-case bugs the existing solution already fixed, and add a second thing to maintain when the library or shared component gets updated. If the codebase already depends on lodash, has a shared `DateCell`, or uses a data-fetching library with a built-in feature (autoReset, cursor-based pagination), reuse it instead of rebuilding it.
+
+```typescript
+// ❌ Bad: manual loop to strip a prefix instead of using a string built-in
+function stripPrefix(value: string, prefix: string) {
+  return value.indexOf(prefix) === 0 ? value.slice(prefix.length) : value;
+}
+
+// ❌ Bad: hand-rolled debounce when lodash is already a dependency
+function useDebouncedSearch(callback: (query: string) => void) {
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  return (query: string) => {
+    clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => callback(query), 300);
+  };
+}
+
+// ❌ Bad: a new table cell for a value the shared library already formats
+function DateDisplayCell({ value }: { value: string }) {
+  return <span>{new Date(value).toLocaleDateString()}</span>;
+}
+
+// ✅ Good: use the built-in / library / shared component
+const stripped = value.replace(new RegExp(`^${prefix}`), "");
+
+import { debounce } from "lodash";
+const debouncedSearch = debounce(callback, 300);
+
+import { DateCell } from "@/components/table/DateCell";
+<DateCell value={row.createdAt} />;
+```
+
+**Before writing new logic, ask:** does a built-in method, a library we already depend on, or a shared component/hook in this codebase already do this?
 
 ---
 
@@ -1844,6 +1925,8 @@ Guard clauses must account for legitimate edge cases: an empty collection that i
 
 **Why:** A guard is supposed to protect against invalid states, but a too-broad guard disables valid ones. `if (arr.length === 0) return` looks defensive, but if an empty array is legitimate on first render it permanently short-circuits the fetch. Missing `await` and unhandled rejections fail silently in exactly the cases that matter.
 
+**Scope:** This is about states genuinely reachable by untrusted input or real runtime conditions - not deployment-time config values (env vars, operator-set constants like `retentionDays` or `trustedProxyHops`) that have no path from user input; don't demand a NaN/bounds guard on those unless a concrete untrusted-input path reaches them. And before flagging a property chain that feeds a user-facing message as unguarded, check the render site too - if the consuming component already applies its own fallback (e.g. `${name ?? ""}`), the guard may already exist downstream.
+
 ```typescript
 // ❌ Bad: Empty collection is legitimate on first render, but this
 // guard permanently disables the fetcher - it never runs when
@@ -1887,6 +1970,12 @@ async function saveDraft(draft: Draft) {
     reportError(error);
   }
 }
+
+// ✅ OK: retentionDays is an operator-set deployment config value with no
+// untrusted-input path - a missing NaN/bounds guard here isn't a reachable bug
+function computeExpiryDate(retentionDays: number) {
+  return addDays(new Date(), retentionDays);
+}
 ```
 
 ---
@@ -1896,6 +1985,8 @@ async function saveDraft(draft: Draft) {
 A permission check, action handler, or status message must reference the case it's actually guarding - not a copy-pasted neighbor's.
 
 **Why:** Copy-pasting a similar condition, permission check, or UI message and forgetting to update which action or state it refers to produces code that compiles, runs, and reads as intentional. The bug only surfaces when someone traces the referenced constant back to what it actually means - by then it may already be in production.
+
+**Scope:** Don't flag a broader permission that legitimately subsumes a narrower action (e.g. a `manage` permission covering `show`) - that's expected coverage, not a mismatch; only flag when the permission checked is a genuinely different, unrelated capability. Similarly, a `DELETE` handler classifying itself by a literal string match, or skipping body-parsing entirely, is often an intentional simplification given `DELETE` requests carry no body - don't flag it as under-specific unless you can point to a request that's actually misrouted as a result.
 
 ```typescript
 // ❌ Bad: delete is gated on the edit permission, not delete
@@ -1987,6 +2078,106 @@ function useResults(query: string) {
 
 ---
 
+### LOGIC-5: Don't Silently Drop Behavior During a Refactor
+
+When refactoring, verify every prop, parameter, `eslint-disable` comment, CSS/layout class, and piece of persisted state or error handling that existed before the change still exists after it - or has an explicit, intentional replacement.
+
+**Why:** A refactor that quietly drops a prop nobody re-wired, an `eslint-disable` that suppressed a real warning, a layout class that was load-bearing, or persisted state/error handling that never got reimplemented doesn't fail loudly - it ships, passes review because the diff "looks like a cleanup," and the regression surfaces later as a confusing bug report with no connection back to the refactor that caused it.
+
+```typescript
+// ❌ Bad: previewLength prop removed from the component, but call sites still pass it
+function InlineExpandableCell({ value }: { value: string }) {
+  return <span>{value}</span>;
+}
+<InlineExpandableCell value={row.summary} previewLength={80} />; // now a dead no-op prop
+
+// ❌ Bad: eslint-disable dropped along with the "cleanup" - the underlying issue
+// it suppressed is still there, it just fails lint now instead of being silenced on purpose
+// (deleted during refactor: eslint-disable-next-line @typescript-eslint/no-explicit-any)
+window.open(url as any);
+
+// ❌ Bad: layout class dropped with nothing to replace it
+// before: <div className="h-full flex flex-col">
+<div>{children}</div>
+
+// ✅ Good: prop removed from both the component AND every call site
+function InlineExpandableCell({ value }: { value: string }) {
+  return <span>{value}</span>;
+}
+<InlineExpandableCell value={row.summary} />;
+
+// ✅ Good: intentional replacement, or the same protection kept
+<div className="h-full flex flex-col">{children}</div>
+```
+
+**Before removing anything in a refactor, ask:** was this dropped on purpose, and if so, what replaced it?
+
+---
+
+## Error Handling
+
+### ERR-1: Errors Must Reach the User or Preserve Their Origin
+
+A `catch` block that suppresses a failure must still surface a message where the user can see it. A rethrow or wrapped error must preserve the original error (as `cause` or in the message) and land in a handler that's actually reachable - not become an unhandled rejection.
+
+**Why:** These are the same bug in opposite directions: a catch that swallows an error leaves the user staring at a UI that looks like it worked when it didn't, and a rethrow that loses the original error or has no handler above it leaves the developer with no way to diagnose what actually failed. Both destroy the information a user or developer needs at the exact moment they need it most.
+
+**Scope:** This is about *user-facing* failures and *genuinely uncaught* rethrows - not every degrade-to-null parsing helper (a best-effort parser like `decodeEntry` is allowed to fail closed with no message) and not internal status/enum fields that are deliberately a coarse simplification rather than a raw error passthrough. In a queue/pubsub consumer where the platform retries on an uncaught throw, prefer letting the error propagate over adding a catch that swallows it - that catch is the anti-pattern, not the missing one.
+
+```typescript
+// ❌ Bad: catch swallows the error with no user-facing message
+async function saveSettings(settings: Settings) {
+  try {
+    await api.saveSettings(settings);
+  } catch (error) {
+    console.error(error); // user has no idea the save failed
+  }
+}
+
+// ❌ Bad: rethrow drops the original error and its cause
+async function publishSnapshot(snapshot: Snapshot) {
+  try {
+    await api.publish(snapshot);
+  } catch (error) {
+    throw new Error("Publish failed"); // original error/stack is gone
+  }
+}
+
+// ❌ Bad: async call in an event handler with no catch anywhere above it
+button.onclick = async () => {
+  await publishSnapshot(snapshot); // rejection is unhandled
+};
+
+// ✅ Good: surface a real message to the user
+async function saveSettings(settings: Settings) {
+  try {
+    await api.saveSettings(settings);
+  } catch (error) {
+    showToast({ variant: "error", message: "Couldn't save settings. Try again." });
+  }
+}
+
+// ✅ Good: preserve the original error
+async function publishSnapshot(snapshot: Snapshot) {
+  try {
+    await api.publish(snapshot);
+  } catch (error) {
+    throw new Error("Publish failed", { cause: error });
+  }
+}
+
+// ✅ Good: the caller catches and handles the rejection
+button.onclick = async () => {
+  try {
+    await publishSnapshot(snapshot);
+  } catch (error) {
+    showToast({ variant: "error", message: "Couldn't publish snapshot." });
+  }
+};
+```
+
+---
+
 ## Performance & Scale
 
 ### SCALE-1: Don't Filter Large Collections In Memory
@@ -2026,6 +2217,8 @@ Flag hardcoded high limits (e.g. `limit: 10000`) and unbounded fetches that pull
 
 **Why:** A "big enough" limit is a bomb with a delayed fuse - it works until the data crosses the threshold, then silently drops rows or times out. Unbounded queries have the same problem with no ceiling at all. Real pagination scales with the data instead of guessing at a maximum.
 
+**Scope:** Don't flag a bare hardcoded limit with no amplification cited - pair the flag with concrete evidence (a named fan-out, an exact row/record count, or a plausible growth path) that the limit will actually be crossed. And don't flag an already-reviewed operational constant (e.g. a search bucket-size clamp or a `from`/`size` bound) as too tight or too loose absent that same concrete evidence - these are frequently intentional, previously-discussed limits, not oversights.
+
 ```typescript
 // ❌ Bad: Hardcoded high limit - silently truncates past 10,000
 const events = await db.events.findMany({ take: 10000 });
@@ -2053,6 +2246,50 @@ async function fetchAllEvents() {
 
 // ✅ Good: Or paginate at the UI and only fetch what's shown
 const page = await db.events.findMany({ take: pageSize, skip: pageIndex * pageSize });
+```
+
+---
+
+### SCALE-3: Isolate and Parallelize Independent Per-Item Async Work
+
+When looping over independent items to perform async work (webhook calls, per-device notifications), guard each item so one failure doesn't abort the rest, and run genuinely independent async calls concurrently instead of `await`-ing them one at a time.
+
+**Why:** A loop with one unguarded `await` per item means the first failure stops every item after it - one bad webhook target silently drops every notification queued behind it. And when calls don't depend on each other's results, awaiting them sequentially adds up their latencies for no reason; `Promise.all` (or `Promise.allSettled` when partial failure is expected) runs them in the time of the slowest one.
+
+**Scope:** Doesn't apply to bulk-write APIs (e.g. a bulk index/update call) that already have their own partial-failure semantics - check whether the loop is really independent per-item work before flagging it.
+
+```typescript
+// ❌ Bad: one failing webhook aborts every notification after it
+async function notifyDevices(devices: Device[], event: Event) {
+  for (const device of devices) {
+    await webhook.trigger(device, event); // throws -> remaining devices never notified
+  }
+}
+
+// ❌ Bad: independent fetches awaited one at a time
+async function loadDashboard(orgId: string) {
+  const latestHits = await fetchLatestHits(orgId);
+  const historyResult = await fetchHistory(orgId); // doesn't depend on latestHits
+  const policies = await fetchPolicies(orgId); // doesn't depend on either
+  return { latestHits, historyResult, policies };
+}
+
+// ✅ Good: guard each item so one failure doesn't stop the rest
+async function notifyDevices(devices: Device[], event: Event) {
+  await Promise.allSettled(
+    devices.map((device) => webhook.trigger(device, event))
+  );
+}
+
+// ✅ Good: independent fetches run concurrently
+async function loadDashboard(orgId: string) {
+  const [latestHits, historyResult, policies] = await Promise.all([
+    fetchLatestHits(orgId),
+    fetchHistory(orgId),
+    fetchPolicies(orgId),
+  ]);
+  return { latestHits, historyResult, policies };
+}
 ```
 
 ---
@@ -2123,6 +2360,8 @@ Never trust a client-supplied owner, tenant, or resource identifier to decide wh
 
 **Scope:** This applies just as much when a resource is scoped by more than one key (e.g. partner + soc, tenant + workspace). Filtering by only one of the client-supplied keys and skipping the others is still a bypass - verify every scoping key the resource requires, not just the first one checked.
 
+This requirement isn't limited to database queries. An in-memory or module-level cache keyed without the tenant/partner dimension leaks one tenant's cached response to another's request just as surely as an unscoped query does, and a secret or config key name needs the same per-environment/per-tenant scoping as a resource id. A scoping check written with optional chaining must fail closed when the left side is `undefined` - if an intermediate value can legitimately be missing, guard for that case explicitly and deny by default, don't let it silently pass. And before flagging a handler for missing scoping, check whether the service layer or an upstream middleware already enforces it outside the diff - many handlers are protected one layer down.
+
 ```typescript
 // ❌ Bad: Trusts the tenantId sent by the client
 async function getInvoices(req: Request) {
@@ -2171,6 +2410,96 @@ async function getPartnerAlerts(req: AuthedRequest) {
   }
   return db.alerts.findMany({ where: { partnerId } });
 }
+
+// ❌ Bad: cache keyed without the tenant dimension - leaks across tenants
+const customersCache = new Map<string, Customer[]>();
+async function getCustomers(partnerId: string) {
+  if (customersCache.has("customers")) return customersCache.get("customers");
+  const customers = await fetchCustomers(partnerId);
+  customersCache.set("customers", customers);
+  return customers;
+}
+
+// ❌ Bad: optional chaining silently drops the scoping filter when orgId is undefined
+async function getEvents(req: AuthedRequest) {
+  const orgId = req.session.user?.organizationId;
+  return db.events.findMany({
+    where: orgId ? { organizationId: orgId } : {}, // undefined orgId -> no filter at all
+  });
+}
+
+// ✅ Good: cache key includes the scoping dimension
+async function getCustomers(partnerId: string) {
+  if (customersCache.has(partnerId)) return customersCache.get(partnerId);
+  const customers = await fetchCustomers(partnerId);
+  customersCache.set(partnerId, customers);
+  return customers;
+}
+
+// ✅ Good: missing orgId fails closed instead of silently returning everything
+async function getEvents(req: AuthedRequest) {
+  const orgId = req.session.user?.organizationId;
+  if (!orgId) throw new ForbiddenError("No organization on session");
+  return db.events.findMany({ where: { organizationId: orgId } });
+}
+```
+
+---
+
+## Test Coverage
+
+### TEST-GAP-1: Cover Non-Trivial Pure Functions, Boundary Conditions, and Lifecycle Termination
+
+A non-trivial pure function (geometry/positioning math, a date-range or classification predicate, a legacy-compat parsing path) needs a test - including its boundary cases, not just the obvious input. Async lifecycle code (polling, intervals, retries) needs a test proving it actually stops when it should. And a test whose name promises a specific case must actually exercise that case.
+
+**Why:** These are the tests that catch real regressions - a boundary miscalculated by one day, a classification predicate that never matches its documented case, an interval that keeps firing after unmount. A test file with the right name but assertions that pass regardless of the input gives false confidence, which is worse than no test at all.
+
+**Scope:** Reserve this for genuinely non-trivial logic - a geometry calculation, a date-range boundary, a matching/classification predicate, a legacy parsing branch, a polling termination condition, a cross-tenant isolation guarantee. Don't flag a missing test for a simple list render, a single obvious branch of a plain filter, or UI conditional-render branch coverage - those don't get fixed in practice and just add noise.
+
+```typescript
+// ❌ Bad: no test for the boundary of a date-range filter
+function isWithinRange(date: Date, start: Date, end: Date) {
+  return date >= start && date <= end;
+}
+// Nothing asserts what happens exactly at `start` or `end`.
+
+// ❌ Bad: test name promises "latest" but never actually exercises that path
+it("returns the latest snapshot", () => {
+  const result = getSnapshot(snapshots);
+  expect(result).toBeDefined(); // passes for any snapshot, not just the latest
+});
+
+// ❌ Bad: polling code with no test that it stops
+function usePolling(jobId: string, onComplete: () => void) {
+  useEffect(() => {
+    const interval = setInterval(() => checkJobStatus(jobId, onComplete), 1000);
+    return () => clearInterval(interval);
+  }, [jobId]);
+}
+// No test proves the interval clears on unmount or stops once the job completes.
+
+// ✅ Good: boundary cases explicitly asserted
+it("includes the exact start and end instants", () => {
+  expect(isWithinRange(start, start, end)).toBe(true);
+  expect(isWithinRange(end, start, end)).toBe(true);
+  expect(isWithinRange(new Date(end.getTime() + 1), start, end)).toBe(false);
+});
+
+// ✅ Good: the test actually exercises the case it's named for
+it("returns the latest snapshot", () => {
+  const result = getSnapshot([older, newer]);
+  expect(result).toBe(newer);
+});
+
+// ✅ Good: polling termination is directly tested
+it("stops polling once the job completes", () => {
+  const { unmount } = renderHook(() => usePolling(jobId, onComplete));
+  completeJob(jobId);
+  jest.advanceTimersByTime(1000);
+  expect(onComplete).toHaveBeenCalledTimes(1);
+  jest.advanceTimersByTime(5000);
+  expect(onComplete).toHaveBeenCalledTimes(1); // no further calls
+});
 ```
 
 ---
