@@ -41,13 +41,15 @@ Review TypeScript code against Harsh Maur's coding rules in `references/rules.md
 2. **Type Safety (TYPE-1 to TYPE-3):** Any `any` types? Unjustified escape hatches (`@ts-ignore`, `as unknown`)? Redundant runtime checks for already-typed values?
 3. **Naming (NAME-1 to NAME-13):** Spelling? Abbreviation casing? Meaningless names? Abstract names? Single letters? Names that don't match behavior?
 4. **Comments (COMMENT-1 to COMMENT-3):** "What" comments? Redundant JSDoc that repeats types? Undocumented anti-patterns? Stale TODOs?
-5. **Code Style (STYLE-1 to STYLE-6):** Implicit type coercion (`!!`, `+str`)? Unused code? Unnecessary type aliases? Manual prop forwarding instead of spread? Optional booleans without a default? Unjustified new conditions/wrappers/abstractions?
+5. **Code Style (STYLE-1 to STYLE-8):** Implicit type coercion (`!!`, `+str`)? Unused code? Unnecessary type aliases? Manual prop forwarding instead of spread? Optional booleans without a default? Unjustified new conditions/wrappers/abstractions? Logic duplicated across call sites instead of extracted? Hand-rolled logic reinventing an existing utility/component?
 6. **React (REACT-1 to REACT-11):** Composition vs props? Enum props? Hook encapsulation? Display-ready values? Flexible input types?
 7. **Structure (STRUCT-1):** Functions in types folder?
-8. **Logic (LOGIC-1 to LOGIC-4):** Duplicate if/else or switch branches? Unhandled edge cases in guards (empty collections, null, missing `await`)? Conditions/messages that don't match their actual case? Uncontrolled inputs, missing effect dependencies, or stale loading flags?
-9. **Performance & Scale (SCALE-1 to SCALE-2):** In-memory filtering of large collections? Unbounded or hardcoded-high-limit queries?
-10. **Debug Artifacts (DEBUG-1 to DEBUG-2):** Stray test identifiers in production? Leftover `console.log`/`console.debug`?
-11. **Security (SEC-1):** Client-supplied owner/tenant IDs trusted without a server-side authorization check? Every scoping key verified when a resource has more than one?
+8. **Logic (LOGIC-1 to LOGIC-5):** Duplicate if/else or switch branches? Unhandled edge cases in guards (empty collections, null, missing `await`)? Conditions/messages that don't match their actual case? Uncontrolled inputs, missing effect dependencies, or stale loading flags? Behavior (props, params, eslint-disables, CSS classes, persisted state) silently dropped during a refactor?
+9. **Error Handling (ERR-1):** Catch blocks that swallow a user-facing failure with no surfaced message? Rethrows that drop the original error or become unhandled rejections?
+10. **Performance & Scale (SCALE-1 to SCALE-3):** In-memory filtering of large collections? Unbounded or hardcoded-high-limit queries? Independent per-item async work left unguarded or unnecessarily serialized?
+11. **Debug Artifacts (DEBUG-1 to DEBUG-2):** Stray test identifiers in production? Leftover `console.log`/`console.debug`?
+12. **Security (SEC-1):** Client-supplied owner/tenant IDs trusted without a server-side authorization check? Every scoping key verified when a resource has more than one? Cache keys and secret/config names scoped the same way? Auth checks written with optional chaining failing closed?
+13. **Test Coverage (TEST-GAP-1):** Non-trivial pure functions (geometry, date-range boundaries, classification predicates, legacy parsing, polling termination) shipped with no test, or a test whose name promises a case it doesn't actually exercise?
 
 **Do NOT skip categories.** If a category doesn't apply to a file (e.g., no React in a utility file), explicitly note "N/A" for that category.
 
@@ -94,11 +96,11 @@ Always end with this copy-paste friendly summary:
 
 ### Coverage Verification
 
-| File | EXT | TYPE | NAME | COMMENT | STYLE | REACT | STRUCT | LOGIC | SCALE | DEBUG | SEC |
-|------|-----|------|------|---------|-------|-------|--------|-------|-------|-------|-----|
-| `useBulkDeploy.ts` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | ✓ | ✓ | ✓ |
-| `DeployTable.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | N/A | ✓ | N/A |
-| `types/bulk-deploy.ts` | N/A | ✓ | ✓ | N/A | N/A | N/A | ✓ | N/A | N/A | N/A | N/A |
+| File | EXT | TYPE | NAME | COMMENT | STYLE | REACT | STRUCT | LOGIC | ERR | SCALE | DEBUG | SEC | TEST-GAP |
+|------|-----|------|------|---------|-------|-------|--------|-------|-----|-------|-------|-----|----------|
+| `useBulkDeploy.ts` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `DeployTable.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | N/A | N/A | ✓ | N/A | ✓ |
+| `types/bulk-deploy.ts` | N/A | ✓ | ✓ | N/A | N/A | N/A | ✓ | N/A | N/A | N/A | N/A | N/A | N/A |
 
 ### Results by Category
 
@@ -112,9 +114,11 @@ Always end with this copy-paste friendly summary:
 | React Components | :x: Fail | 1 |
 | Project Structure | :white_check_mark: Pass | 0 |
 | Logic & Correctness | :white_check_mark: Pass | 0 |
+| Error Handling | :white_check_mark: Pass | 0 |
 | Performance & Scale | :white_check_mark: Pass | 0 |
 | Debug Artifacts | :white_check_mark: Pass | 0 |
 | Security | :white_check_mark: Pass | 0 |
+| Test Coverage | :white_check_mark: Pass | 0 |
 
 ### Issues Found (3)
 
@@ -146,10 +150,10 @@ When all checks pass:
 
 ### Coverage Verification
 
-| File | EXT | TYPE | NAME | COMMENT | STYLE | REACT | STRUCT | LOGIC | SCALE | DEBUG | SEC |
-|------|-----|------|------|---------|-------|-------|--------|-------|-------|-------|-----|
-| `file1.ts` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | ✓ | ✓ | ✓ |
-| `file2.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | N/A | ✓ | N/A |
+| File | EXT | TYPE | NAME | COMMENT | STYLE | REACT | STRUCT | LOGIC | ERR | SCALE | DEBUG | SEC | TEST-GAP |
+|------|-----|------|------|---------|-------|-------|--------|-------|-----|-------|-------|-----|----------|
+| `file1.ts` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `file2.tsx` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | N/A | ✓ | N/A | N/A | ✓ | N/A | ✓ |
 
 ### Results by Category
 
@@ -163,9 +167,11 @@ When all checks pass:
 | React Components | :white_check_mark: Pass | 0 |
 | Project Structure | :white_check_mark: Pass | 0 |
 | Logic & Correctness | :white_check_mark: Pass | 0 |
+| Error Handling | :white_check_mark: Pass | 0 |
 | Performance & Scale | :white_check_mark: Pass | 0 |
 | Debug Artifacts | :white_check_mark: Pass | 0 |
 | Security | :white_check_mark: Pass | 0 |
+| Test Coverage | :white_check_mark: Pass | 0 |
 
 ### What's Good
 
